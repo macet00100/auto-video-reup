@@ -422,6 +422,7 @@ def process_and_upload_simultaneously(
                     video_path=processed_video,
                     title=new_title,
                     description=clean_fb_desc,
+                    thumbnail_path=thumb_path,
                     config=fb_cfg.get("destination", {})
                 )
                 fb_success = fb_res.get("success", False) if isinstance(fb_res, dict) else False

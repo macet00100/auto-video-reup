@@ -197,6 +197,7 @@ def run_simultaneous_reup():
             video_path=processed_video,
             title=title_fb,
             description=desc_fb,
+            thumbnail_path=thumb_path,
             config=fb_cfg.get("destination", {})
         )
 

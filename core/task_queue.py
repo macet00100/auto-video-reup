@@ -273,6 +273,7 @@ class TaskQueue:
                         video_path=processed_video_path,
                         title=new_title,
                         description=clean_fb_desc,
+                        thumbnail_path=thumb_path,
                         config=plat_cfg.get("destination", {})
                     )
 

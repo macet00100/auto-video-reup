@@ -116,16 +116,7 @@ class YouTubeUploader:
 
             # Nếu có thumbnail, upload thumbnail
             if thumbnail_path and os.path.exists(thumbnail_path) and new_video_id:
-                try:
-                    thumb_url = f"https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId={new_video_id}"
-                    with open(thumbnail_path, "rb") as tf:
-                        thumb_res = requests.post(thumb_url, data=tf, headers={"Authorization": f"Bearer {access_token}", "Content-Type": "image/jpeg"}, timeout=30)
-                    if thumb_res.status_code in [200, 201]:
-                        LogManager.log(f"Đã cập nhật thumbnail thành công cho video ID: {new_video_id}", "SUCCESS", "YOUTUBE")
-                    else:
-                        LogManager.log(f"Lưu ý Thumbnail: Kênh cần xác minh SĐT (Intermediate Features) trong YouTube Studio để bật ảnh thu nhỏ tùy chỉnh: {thumb_res.text[:120]}", "WARNING", "YOUTUBE")
-                except Exception as ex_thumb:
-                    LogManager.log(f"Không thể tải thumbnail lên YouTube: {ex_thumb}", "WARNING", "YOUTUBE")
+                YouTubeUploader.set_thumbnail(new_video_id, thumbnail_path, config)
 
             return {
                 "success": True,
@@ -140,6 +131,28 @@ class YouTubeUploader:
                 "error": str(e),
                 "message": f"Lỗi upload: {str(e)}"
             }
+
+    @staticmethod
+    def set_thumbnail(video_id: str, thumbnail_path: str, config: Dict[str, Any]) -> bool:
+        """Cài đặt ảnh bìa (thumbnail) cho video YouTube."""
+        if not video_id or not thumbnail_path or not os.path.exists(thumbnail_path):
+            return False
+        access_token = YouTubeUploader.get_valid_access_token(config)
+        if not access_token:
+            return False
+        try:
+            thumb_url = f"https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId={video_id}"
+            with open(thumbnail_path, "rb") as tf:
+                thumb_res = requests.post(thumb_url, data=tf, headers={"Authorization": f"Bearer {access_token}", "Content-Type": "image/jpeg"}, timeout=30)
+            if thumb_res.status_code in [200, 201]:
+                LogManager.log(f"Đã cập nhật thumbnail thành công cho video YouTube ID: {video_id}", "SUCCESS", "YOUTUBE")
+                return True
+            else:
+                LogManager.log(f"Lưu ý Thumbnail YouTube: Kênh cần bật tính năng trung gian trong YouTube Studio: {thumb_res.text[:120]}", "WARNING", "YOUTUBE")
+                return False
+        except Exception as ex_thumb:
+            LogManager.log(f"Không thể tải thumbnail lên YouTube: {ex_thumb}", "WARNING", "YOUTUBE")
+            return False
 
     @staticmethod
     def add_comment(video_id: str, comment_text: str, config: Dict[str, Any]) -> bool:

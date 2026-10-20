@@ -1,6 +1,6 @@
 import os
 import requests
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from core.task_queue import LogManager
 
 class FacebookUploader:
@@ -9,8 +9,11 @@ class FacebookUploader:
         video_path: str,
         title: str,
         description: str,
-        config: Dict[str, Any]
+        thumbnail_path: Optional[str] = None,
+        config: Dict[str, Any] = None
     ) -> Dict[str, Any]:
+        if config is None:
+            config = {}
         page_id = config.get("page_id", "").strip()
         access_token = config.get("access_token", "").strip()
 
@@ -121,6 +124,11 @@ class FacebookUploader:
                 final_video_id = video_id or session_id
                 fb_url = f"https://www.facebook.com/watch/?v={final_video_id}"
                 LogManager.log(f"Đăng tải video lên Facebook thành công! Link: {fb_url}", "SUCCESS", "FACEBOOK")
+
+                # BƯỚC 4: TỰ ĐỘNG THIẾT LẬP ẢNH BÌA (THUMBNAIL) NẾU CÓ
+                if thumbnail_path and os.path.exists(thumbnail_path):
+                    FacebookUploader.set_thumbnail(final_video_id, thumbnail_path, config)
+
                 return {
                     "success": True,
                     "video_id": final_video_id,
@@ -138,6 +146,50 @@ class FacebookUploader:
                 "error": str(e),
                 "message": f"Lỗi upload FB: {str(e)}"
             }
+
+    @staticmethod
+    def set_thumbnail(video_id: str, thumbnail_path: str, config: Dict[str, Any]) -> bool:
+        """Cài đặt ảnh bìa / thumbnail chính cho video Facebook (chuẩn tỉ lệ, is_preferred=True)."""
+        if not video_id or not thumbnail_path or not os.path.exists(thumbnail_path):
+            return False
+        page_id = config.get("page_id", "").strip()
+        access_token = config.get("access_token", "").strip()
+        if not access_token:
+            return False
+
+        page_token = access_token
+        try:
+            pt_res = requests.get(
+                f"https://graph.facebook.com/v19.0/{page_id}?fields=access_token&access_token={access_token}",
+                timeout=15
+            )
+            pt_data = pt_res.json()
+            if pt_data.get("access_token"):
+                page_token = pt_data["access_token"]
+        except Exception:
+            pass
+
+        try:
+            LogManager.log(f"Đang tải ảnh bìa (thumbnail) lên Facebook cho video {video_id}...", "INFO", "FACEBOOK")
+            with open(thumbnail_path, "rb") as tf:
+                files = {"source": ("thumbnail.jpg", tf, "image/jpeg")}
+                data = {"is_preferred": "true", "access_token": page_token}
+                res = requests.post(
+                    f"https://graph.facebook.com/v19.0/{video_id}/thumbnails",
+                    files=files,
+                    data=data,
+                    timeout=60
+                )
+                res_data = res.json()
+                if res.status_code in [200, 201] and res_data.get("success", False):
+                    LogManager.log(f"Đã cập nhật ảnh bìa (thumbnail) thành công cho video Facebook: {video_id}", "SUCCESS", "FACEBOOK")
+                    return True
+                else:
+                    LogManager.log(f"Không thể cập nhật ảnh bìa Facebook: {res.text}", "WARNING", "FACEBOOK")
+                    return False
+        except Exception as e:
+            LogManager.log(f"Lỗi khi gửi ảnh bìa Facebook: {e}", "WARNING", "FACEBOOK")
+            return False
 
     @staticmethod
     def add_comment(video_id: str, comment_text: str, config: Dict[str, Any]) -> bool:
