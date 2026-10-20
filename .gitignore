@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+*$py.class
+storage/temp/*
+!storage/temp/.gitkeep
+storage/thumbnails/*
+!storage/thumbnails/.gitkeep
+storage/logs/*
+!storage/logs/.gitkeep
+.env
+*cookie*.txt
+*.cookies.txt
+
+get_youtube_token.py

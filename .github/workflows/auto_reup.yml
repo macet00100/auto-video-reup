@@ -1,0 +1,72 @@
+name: 🎬 Auto Video Reup 24/7 Cloud Worker
+
+on:
+  schedule:
+    # Tự động quét mỗi 15 phút một lần trên Cloud 24/24 (Miễn phí vô hạn khi Repo ở chế độ Public)
+    - cron: '*/15 * * * *'
+  workflow_dispatch: # Cho phép bấm nút "Run workflow" để quét và reup thủ công bất cứ lúc nào
+
+concurrency:
+  group: auto-reup-lock
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  run-auto-reup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: 📥 Tải mã nguồn dự án
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: 🛡️ Kích hoạt Cloudflare WARP (Bypass chặn IP Datacenter của YouTube)
+        uses: fscarmen/warp-on-actions@v1.4
+        timeout-minutes: 3
+        continue-on-error: true
+        with:
+          stack: dual
+          mode: client
+
+      - name: 🌐 Kiểm tra IP kết nối Cloudflare
+        run: |
+          curl -s https://www.cloudflare.com/cdn-cgi/trace | grep -E "ip=|loc=" || true
+
+      - name: 🐍 Cài đặt Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: ⚙️ Cài đặt FFmpeg & Font chữ tiếng Việt
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-dejavu-core
+
+      - name: 📦 Cài đặt thư viện Python & Nâng cấp yt-dlp mới nhất
+        run: |
+          pip install -r requirements.txt
+          pip install --upgrade yt-dlp
+
+      - name: 🚀 Chạy Quét & Reup Tự Động
+        env:
+          PYTHONUNBUFFERED: "1"
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
+          FB_ACCESS_TOKEN: ${{ secrets.FB_ACCESS_TOKEN }}
+        run: |
+          python -u auto_runner.py
+
+      - name: 💾 Tự động lưu lịch sử video đã xử lý vào Git
+        if: always()
+        run: |
+          git config --global user.name "AutoReup Bot"
+          git config --global user.email "bot@autoreup.local"
+          python -c "from core.history import HistoryManager; HistoryManager.sync_to_git('chore: auto updated last processed video state [skip ci]')" || echo "Không có thay đổi cần lưu"

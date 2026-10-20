@@ -1,0 +1,49 @@
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #0f172a;
+}
+::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+}
+
+/* Tab active styles */
+.active-tab-yt {
+    color: #ef4444 !important;
+    border-bottom: 2px solid #ef4444 !important;
+    background-color: rgba(239, 68, 68, 0.08);
+}
+
+.active-tab-fb {
+    color: #3b82f6 !important;
+    border-bottom: 2px solid #3b82f6 !important;
+    background-color: rgba(59, 130, 246, 0.08);
+}
+
+.active-tab-default {
+    color: #38bdf8 !important;
+    border-bottom: 2px solid #38bdf8 !important;
+    background-color: rgba(56, 189, 248, 0.08);
+}
+
+/* Status dots */
+.status-pill {
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.status-QUEUED { background: #334155; color: #94a3b8; }
+.status-DOWNLOADING { background: #1e3a8a; color: #60a5fa; }
+.status-PROCESSING { background: #4c1d95; color: #c084fc; }
+.status-UPLOADING { background: #78350f; color: #fbbf24; }
+.status-COMPLETED { background: #064e3b; color: #34d399; }
+.status-FAILED { background: #7f1d1d; color: #f87171; }

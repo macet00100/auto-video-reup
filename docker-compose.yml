@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  reup-studio:
+    build: .
+    container_name: auto-reup-studio
+    restart: unless-stopped
+    ports:
+      - "7860:7860"
+    environment:
+      - PORT=7860
+    volumes:
+      - ./config.json:/app/config.json
+      - ./storage:/app/storage

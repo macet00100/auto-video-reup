@@ -1,0 +1,121 @@
+{
+    "general": {
+        "gemini_api_key": "",
+        "openai_api_key": "",
+        "scheduler_enabled": true,
+        "scheduler_interval_minutes": 15,
+        "max_concurrent_tasks": 1,
+        "min_duration_minutes": 30,
+        "max_duration_minutes": 180,
+        "clean_temp_after_upload": true,
+        "proxy": ""
+    },
+    "youtube": {
+        "enabled": true,
+        "min_duration_minutes": 30,
+        "max_duration_minutes": 180,
+        "sources": [
+            {
+                "id": "UCEtZg3fpene5M1ZyIpxkBSQ",
+                "name": "Daica Review",
+                "url": "https://www.youtube.com/@daicarecap79",
+                "last_video_id": "rVJEbjT-EzU",
+                "enabled": true
+            },
+            {
+                "id": "UCl425MQ0hfSzigttaqGLXBw",
+                "name": "Tây Vương Mẫu Review",
+                "url": "https://www.youtube.com/@tayvuongmaureview",
+                "last_video_id": "QOL3V1-QMFc",
+                "enabled": true
+            },
+            {
+                "id": "UCTRESe1WtuYjU4w1JL8qutQ",
+                "name": "Tiểu Tử Review",
+                "url": "https://www.youtube.com/@tieutureview94",
+                "last_video_id": "t8WwBpUC80w",
+                "enabled": true
+            }
+        ],
+        "destination": {
+            "auth_mode": "api",
+            "privacy_status": "public",
+            "category_id": "24",
+            "client_id": "",
+            "client_secret": "",
+            "access_token": "",
+            "refresh_token": ""
+        },
+        "bypass_rules": {
+            "hflip": false,
+            "remove_logo": true,
+            "logo_position": "both-top",
+            "speed": 1.03,
+            "pitch_shift": true,
+            "crop_percent": 3,
+            "blur_border": false,
+            "color_boost": true,
+            "change_fps": true,
+            "target_resolution": "720p"
+        },
+        "metadata_rules": {
+            "rewrite_title": true,
+            "title_prefix": "",
+            "title_suffix": "",
+            "generate_thumbnail": true,
+            "thumbnail_style": "modern_yellow"
+        }
+    },
+    "facebook": {
+        "enabled": true,
+        "min_duration_minutes": 30,
+        "max_duration_minutes": 180,
+        "sources": [
+            {
+                "id": "UCEtZg3fpene5M1ZyIpxkBSQ",
+                "name": "Daica Review",
+                "url": "https://www.youtube.com/@daicarecap79",
+                "last_video_id": "rVJEbjT-EzU",
+                "enabled": true
+            },
+            {
+                "id": "UCl425MQ0hfSzigttaqGLXBw",
+                "name": "Tây Vương Mẫu Review",
+                "url": "https://www.youtube.com/@tayvuongmaureview",
+                "last_video_id": "QOL3V1-QMFc",
+                "enabled": true
+            },
+            {
+                "id": "UCTRESe1WtuYjU4w1JL8qutQ",
+                "name": "Tiểu Tử Review",
+                "url": "https://www.youtube.com/@tieutureview94",
+                "last_video_id": "t8WwBpUC80w",
+                "enabled": true
+            }
+        ],
+        "destination": {
+            "page_id": "",
+            "access_token": "",
+            "post_as_reel": false
+        },
+        "bypass_rules": {
+            "hflip": false,
+            "remove_logo": true,
+            "logo_position": "both-top",
+            "speed": 1.04,
+            "pitch_shift": true,
+            "crop_percent": 4,
+            "blur_border": false,
+            "color_boost": true,
+            "change_fps": true,
+            "target_resolution": "720p"
+        },
+        "metadata_rules": {
+            "rewrite_title": true,
+            "title_prefix": "",
+            "title_suffix": "",
+            "generate_thumbnail": true,
+            "thumbnail_style": "gradient_blue"
+        }
+    }
+}

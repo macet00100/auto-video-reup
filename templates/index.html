@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Reup Hub - YouTube & Facebook Automation</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg: '#0f172a',
+                        cardbg: '#1e293b',
+                        borderbg: '#334155',
+                        ytred: '#ff0000',
+                        fbblue: '#1877f2'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="bg-darkbg text-slate-100 min-h-screen flex flex-col font-sans">
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-cardbg border-b border-borderbg sticky top-0 z-50 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-ytred to-fbblue flex items-center justify-center text-white font-bold text-xl shadow-md">
+                    <i class="fa-solid fa-play"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-red-400 via-purple-300 to-blue-400 bg-clip-text text-transparent">
+                        Auto Video Reup Studio
+                    </h1>
+                    <p class="text-xs text-slate-400">Cloud-Native Cross-Platform Automation & Anti-Copyright</p>
+                </div>
+            </div>
+
+            <!-- Quick Status Badges -->
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-2 text-xs bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700">
+                    <span id="system-status-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span id="system-status-text" class="text-slate-300">Đang chạy</span>
+                </div>
+                <button onclick="scanNow()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-1.5 rounded-lg font-medium flex items-center space-x-1 transition shadow">
+                    <i class="fa-solid fa-rotate"></i>
+                    <span>Quét Ngay</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Tab Selector: Tách biệt hoàn toàn YouTube & Facebook -->
+        <div class="max-w-7xl mx-auto px-4 flex space-x-2 border-t border-slate-800 pt-2 overflow-x-auto">
+            <button onclick="switchTab('youtube')" id="tab-btn-youtube" class="tab-btn active-tab-yt px-4 py-2 text-sm font-semibold flex items-center space-x-2 rounded-t-lg transition border-b-2">
+                <i class="fa-brands fa-youtube text-red-500 text-base"></i>
+                <span>Kênh YouTube</span>
+            </button>
+            <button onclick="switchTab('facebook')" id="tab-btn-facebook" class="tab-btn px-4 py-2 text-sm font-semibold flex items-center space-x-2 rounded-t-lg transition border-b-2 text-slate-400 border-transparent hover:text-white">
+                <i class="fa-brands fa-facebook text-blue-500 text-base"></i>
+                <span>Trang Facebook</span>
+            </button>
+            <button onclick="switchTab('ai_studio')" id="tab-btn-ai_studio" class="tab-btn px-4 py-2 text-sm font-semibold flex items-center space-x-2 rounded-t-lg transition border-b-2 text-slate-400 border-transparent hover:text-white">
+                <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i>
+                <span>AI & Thumbnail Studio</span>
+            </button>
+            <button onclick="switchTab('tasks')" id="tab-btn-tasks" class="tab-btn px-4 py-2 text-sm font-semibold flex items-center space-x-2 rounded-t-lg transition border-b-2 text-slate-400 border-transparent hover:text-white">
+                <i class="fa-solid fa-list-check text-emerald-400"></i>
+                <span>Tiến trình & Lịch sử</span>
+                <span id="queue-badge" class="bg-slate-700 text-slate-300 text-xs px-1.5 py-0.2 rounded-full ml-1">0</span>
+            </button>
+            <button onclick="switchTab('logs')" id="tab-btn-logs" class="tab-btn px-4 py-2 text-sm font-semibold flex items-center space-x-2 rounded-t-lg transition border-b-2 text-slate-400 border-transparent hover:text-white">
+                <i class="fa-solid fa-terminal text-teal-400"></i>
+                <span>Nhật ký (Logs)</span>
+            </button>
+            <button onclick="switchTab('cloud')" id="tab-btn-cloud" class="tab-btn px-4 py-2 text-sm font-semibold flex items-center space-x-2 rounded-t-lg transition border-b-2 text-slate-400 border-transparent hover:text-white">
+                <i class="fa-solid fa-cloud text-sky-400"></i>
+                <span>Hướng dẫn Cloud Free</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 space-y-6">
+
+        <!-- ================= TAB 1: YOUTUBE AUTOMATION ================= -->
+        <div id="tab-content-youtube" class="space-y-6">
+            <!-- Banner phân biệt YouTube -->
+            <div class="bg-gradient-to-r from-red-950/40 via-cardbg to-cardbg border border-red-500/30 p-4 rounded-xl flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 bg-red-600/20 text-red-500 rounded-xl flex items-center justify-center text-2xl">
+                        <i class="fa-brands fa-youtube"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                            Khu vực Quản lý YouTube
+                            <span class="text-xs bg-red-600/30 text-red-400 px-2 py-0.5 rounded border border-red-500/40">Tách Biệt</span>
+                        </h2>
+                        <p class="text-xs text-slate-400">Theo dõi nhiều kênh nguồn YouTube qua RSS, tự biến đổi video và đăng lên kênh phụ</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="yt_enable_toggle" class="sr-only peer" checked onchange="toggleModule('youtube')">
+                        <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+                        <span class="ml-2 text-xs font-medium text-slate-300">Kích hoạt</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Quick Trigger 1 Video -->
+            <div class="bg-cardbg border border-borderbg rounded-xl p-5 shadow">
+                <h3 class="text-sm font-bold text-red-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-bolt"></i> Test Reup Nhanh 1 Video YouTube
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+                    <div class="md:col-span-8">
+                        <input type="text" id="yt_manual_url" placeholder="Dán link video YouTube (Ví dụ: https://www.youtube.com/watch?v=... hoặc Shorts)" 
+                               class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-red-500">
+                    </div>
+                    <div class="md:col-span-4 flex gap-2">
+                        <button onclick="triggerManualReup('youtube')" class="w-full bg-red-600 hover:bg-red-500 text-white font-medium text-sm py-2.5 px-4 rounded-lg flex items-center justify-center space-x-2 transition shadow">
+                            <i class="fa-solid fa-play"></i>
+                            <span>Bắt Đầu Xử Lý & Reup</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Danh sách kênh YouTube nguồn -->
+                <div class="lg:col-span-7 bg-cardbg border border-borderbg rounded-xl p-5 space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
+                        <h3 class="font-bold text-slate-200 flex items-center gap-2">
+                            <i class="fa-solid fa-satellite-dish text-red-400"></i>
+                            Danh Sách Kênh Nguồn Theo Dõi
+                        </h3>
+                        <button onclick="openAddSourceModal('youtube')" class="bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition">
+                            <i class="fa-solid fa-plus"></i> Thêm Kênh
+                        </button>
+                    </div>
+                    
+                    <div id="yt-source-list" class="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+
+                <!-- Cấu hình Bộ Lọc Tránh Bản Quyền YouTube -->
+                <div class="lg:col-span-5 bg-cardbg border border-borderbg rounded-xl p-5 space-y-4">
+                    <div class="border-b border-slate-700/60 pb-3">
+                        <h3 class="font-bold text-slate-200 flex items-center gap-2">
+                            <i class="fa-solid fa-shield-halved text-red-400"></i>
+                            Bộ Lọc Lách Bản Quyền (YouTube)
+                        </h3>
+                        <p class="text-xs text-slate-400">Tự động can thiệp hình ảnh & âm thanh phá vân tay số Content ID</p>
+                    </div>
+
+                    <div class="space-y-3 text-sm">
+                        <label class="flex items-center justify-between p-2.5 bg-slate-800/60 rounded-lg hover:bg-slate-800 cursor-pointer border border-emerald-500/30">
+                            <span class="flex items-center gap-2">
+                                <i class="fa-solid fa-eraser text-emerald-400"></i>
+                                <span>Tự động xóa logo kênh cũ (Delogo Watermark)</span>
+                                <span class="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded">Khuyên Bật</span>
+                            </span>
+                            <input type="checkbox" id="yt_filter_remove_logo" class="w-4 h-4 accent-emerald-500 rounded" checked>
+                        </label>
+
+                        <label class="flex items-center justify-between p-2.5 bg-slate-800/60 rounded-lg hover:bg-slate-800 cursor-pointer">
+                            <span class="flex items-center gap-2">
+                                <i class="fa-solid fa-arrows-left-right text-slate-400"></i>
+                                <span>Lật ngang hình ảnh (Horizontal Flip)</span>
+                                <span class="text-[10px] text-amber-400 font-normal">(Đã tắt: Tránh ngược phụ đề sub)</span>
+                            </span>
+                            <input type="checkbox" id="yt_filter_hflip" class="w-4 h-4 accent-red-600 rounded">
+                        </label>
+
+                        <label class="flex items-center justify-between p-2.5 bg-slate-800/60 rounded-lg hover:bg-slate-800 cursor-pointer">
+                            <span class="flex items-center gap-2">
+                                <i class="fa-solid fa-music text-slate-400"></i> Đổi cao độ âm thanh (Pitch Shift)
+                            </span>
+                            <input type="checkbox" id="yt_filter_pitch" class="w-4 h-4 accent-red-600 rounded">
+                        </label>
+
+                        <label class="flex items-center justify-between p-2.5 bg-slate-800/60 rounded-lg hover:bg-slate-800 cursor-pointer">
+                            <span class="flex items-center gap-2">
+                                <i class="fa-solid fa-palette text-slate-400"></i> Tăng độ tương phản & bão hòa màu
+                            </span>
+                            <input type="checkbox" id="yt_filter_color" class="w-4 h-4 accent-red-600 rounded">
+                        </label>
+
+                        <div class="p-2.5 bg-slate-800/60 rounded-lg space-y-1.5">
+                            <div class="flex justify-between">
+                                <span class="flex items-center gap-2">
+                                    <i class="fa-solid fa-gauge-high text-slate-400"></i> Tốc độ video (Speed Multiplier)
+                                </span>
+                                <span id="yt_speed_label" class="font-mono text-red-400 font-bold">1.03x</span>
+                            </div>
+                            <input type="range" id="yt_filter_speed" min="1.00" max="1.15" step="0.01" value="1.03" 
+                                   oninput="document.getElementById('yt_speed_label').innerText = this.value + 'x'"
+                                   class="w-full accent-red-600">
+                        </div>
+
+                        <div class="p-2.5 bg-slate-800/60 rounded-lg space-y-1.5">
+                            <div class="flex justify-between">
+                                <span class="flex items-center gap-2">
+                                    <i class="fa-solid fa-crop text-slate-400"></i> Cắt viền mép (Crop %)
+                                </span>
+                                <span id="yt_crop_label" class="font-mono text-red-400 font-bold">3%</span>
+                            </div>
+                            <input type="range" id="yt_filter_crop" min="0" max="8" step="1" value="3" 
+                                   oninput="document.getElementById('yt_crop_label').innerText = this.value + '%'"
+                                   class="w-full accent-red-600">
+                        </div>
+                    </div>
+
+                    <!-- Destination Config -->
+                    <div class="border-t border-slate-700/60 pt-3 space-y-2">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Kênh Đích & Đăng Bài</h4>
+                        <div>
+                            <label class="text-xs text-slate-400 flex justify-between">
+                                <span>YouTube Refresh Token:</span>
+                                <span class="text-emerald-400 text-[11px]">🌟 Tự gia hạn vĩnh viễn</span>
+                            </label>
+                            <input type="password" id="yt_refresh_token" placeholder="Dán mã Refresh token 1//... từ Step 2" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-xs text-white mt-1 focus:border-red-500">
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-400">YouTube Access Token (Tạm thời 1 giờ):</label>
+                            <input type="password" id="yt_access_token" placeholder="Bearer Token ya29... (Tùy chọn nếu có Refresh Token)" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-xs text-white mt-1 focus:border-red-500">
+                        </div>
+                        <div class="flex justify-between items-center pt-2">
+                            <button onclick="savePlatformConfig('youtube')" class="w-full bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold py-2 rounded-lg transition">
+                                <i class="fa-solid fa-floppy-disk mr-1"></i> Lưu Cấu Hình YouTube
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TAB 2: FACEBOOK AUTOMATION ================= -->
+        <div id="tab-content-facebook" class="space-y-6 hidden">
+            <!-- Banner phân biệt Facebook -->
+            <div class="bg-gradient-to-r from-blue-950/40 via-cardbg to-cardbg border border-blue-500/30 p-4 rounded-xl flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 bg-blue-600/20 text-blue-500 rounded-xl flex items-center justify-center text-2xl">
+                        <i class="fa-brands fa-facebook-f"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                            Khu vực Quản lý Facebook
+                            <span class="text-xs bg-blue-600/30 text-blue-400 px-2 py-0.5 rounded border border-blue-500/40">Tách Biệt</span>
+                        </h2>
+                        <p class="text-xs text-slate-400">Theo dõi nguồn Facebook / Video hot, tự động xử lý và up lên Fanpage hoặc Facebook Reels</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="fb_enable_toggle" class="sr-only peer" checked onchange="toggleModule('facebook')">
+                        <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        <span class="ml-2 text-xs font-medium text-slate-300">Kích hoạt</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Quick Trigger 1 Video Facebook -->
+            <div class="bg-cardbg border border-borderbg rounded-xl p-5 shadow">
+                <h3 class="text-sm font-bold text-blue-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-bolt"></i> Test Reup Nhanh Video Lên Facebook
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+                    <div class="md:col-span-8">
+                        <input type="text" id="fb_manual_url" placeholder="Dán link video Facebook Watch / Reels hoặc YouTube cần chuyển sang Facebook..." 
+                               class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div class="md:col-span-4 flex gap-2">
+                        <button onclick="triggerManualReup('facebook')" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm py-2.5 px-4 rounded-lg flex items-center justify-center space-x-2 transition shadow">
+                            <i class="fa-solid fa-play"></i>
+                            <span>Bắt Đầu Xử Lý & Reup Facebook</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Danh sách nguồn Facebook -->
+                <div class="lg:col-span-7 bg-cardbg border border-borderbg rounded-xl p-5 space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
+                        <h3 class="font-bold text-slate-200 flex items-center gap-2">
+                            <i class="fa-solid fa-layer-group text-blue-400"></i>
+                            Danh Sách Trang / Nguồn Facebook
+                        </h3>
+                        <button onclick="openAddSourceModal('facebook')" class="bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition">
+                            <i class="fa-solid fa-plus"></i> Thêm Nguồn FB
+                        </button>
+                    </div>
+                    
+                    <div id="fb-source-list" class="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+
+                <!-- Cấu hình Fanpage Đích & Bộ Lọc Facebook -->
+                <div class="lg:col-span-5 bg-cardbg border border-borderbg rounded-xl p-5 space-y-4">
+                    <div class="border-b border-slate-700/60 pb-3">
+                        <h3 class="font-bold text-slate-200 flex items-center gap-2">
+                            <i class="fa-solid fa-sliders text-blue-400"></i>
+                            Cấu Hình Fanpage & Bộ Lọc FB
+                        </h3>
+                        <p class="text-xs text-slate-400">Cấu hình Graph API đăng Fanpage và bộ lọc video riêng</p>
+                    </div>
+
+                    <div class="space-y-3 text-sm">
+                        <div>
+                            <label class="text-xs text-slate-400">Facebook Fanpage ID đích:</label>
+                            <input type="text" id="fb_page_id" placeholder="Ví dụ: 104829384918234" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-xs text-white mt-1 focus:border-blue-500">
+                        </div>
+
+                        <div>
+                            <label class="text-xs text-slate-400">Page Access Token:</label>
+                            <input type="password" id="fb_access_token" placeholder="EAA..." class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-xs text-white mt-1 focus:border-blue-500">
+                        </div>
+
+                        <label class="flex items-center justify-between p-2.5 bg-slate-800/60 rounded-lg hover:bg-slate-800 cursor-pointer">
+                            <span class="flex items-center gap-2">
+                                <i class="fa-solid fa-video text-slate-400"></i> Đăng dưới dạng Facebook Reels
+                            </span>
+                            <input type="checkbox" id="fb_post_as_reel" class="w-4 h-4 accent-blue-600 rounded" checked>
+                        </label>
+
+                        <label class="flex items-center justify-between p-2.5 bg-slate-800/60 rounded-lg hover:bg-slate-800 cursor-pointer border border-emerald-500/30 text-xs">
+                            <span class="flex items-center gap-2">
+                                <i class="fa-solid fa-eraser text-emerald-400"></i>
+                                <span>Tự động xóa logo kênh cũ</span>
+                            </span>
+                            <input type="checkbox" id="fb_filter_remove_logo" class="w-4 h-4 accent-emerald-500 rounded" checked>
+                        </label>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <label class="flex items-center justify-between p-2.5 bg-slate-800/60 rounded-lg hover:bg-slate-800 cursor-pointer text-xs">
+                                <span>Lật gương (Khuyên tắt)</span>
+                                <input type="checkbox" id="fb_filter_hflip" class="w-4 h-4 accent-blue-600 rounded">
+                            </label>
+                            <label class="flex items-center justify-between p-2.5 bg-slate-800/60 rounded-lg hover:bg-slate-800 cursor-pointer text-xs">
+                                <span>Đổi pitch âm thanh</span>
+                                <input type="checkbox" id="fb_filter_pitch" class="w-4 h-4 accent-blue-600 rounded" checked>
+                            </label>
+                        </div>
+
+                        <div>
+                            <label class="text-xs text-slate-400">Hashtag tự động chèn vào bài đăng:</label>
+                            <input type="text" id="fb_hashtags" value="#xuhuong #fbviral #reels #trending" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-xs text-white mt-1 focus:border-blue-500">
+                        </div>
+
+                        <button onclick="savePlatformConfig('facebook')" class="w-full bg-blue-700 hover:bg-blue-600 text-white text-xs font-semibold py-2.5 rounded-lg transition shadow mt-2">
+                            <i class="fa-solid fa-floppy-disk mr-1"></i> Lưu Cấu Hình Facebook
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TAB 3: AI TITLE & THUMBNAIL STUDIO ================= -->
+        <div id="tab-content-ai_studio" class="space-y-6 hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Cấu hình Viết Lại Tiêu Đề AI -->
+                <div class="lg:col-span-6 bg-cardbg border border-borderbg rounded-xl p-5 space-y-4">
+                    <div class="border-b border-slate-700/60 pb-3">
+                        <h3 class="font-bold text-slate-200 flex items-center gap-2">
+                            <i class="fa-solid fa-brain text-amber-400"></i>
+                            AI Viết Lại Tiêu Đề (Title Rewriter)
+                        </h3>
+                        <p class="text-xs text-slate-400">Tự động đặt lại tên video hấp dẫn, chuẩn SEO tiếng Việt và chống trùng lặp</p>
+                    </div>
+
+                    <div class="space-y-3 text-sm">
+                        <div>
+                            <label class="text-xs text-slate-400 flex items-center justify-between">
+                                <span>Google Gemini API Key:</span>
+                                <span class="text-emerald-400 text-[11px]">(Khuyên dùng - Có gói Free 15 req/phút)</span>
+                            </label>
+                            <input type="password" id="cfg_gemini_key" placeholder="AIzaSy..." class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-xs text-white mt-1 focus:border-amber-400">
+                        </div>
+
+                        <div>
+                            <label class="text-xs text-slate-400">OpenAI API Key (Tùy chọn):</label>
+                            <input type="password" id="cfg_openai_key" placeholder="sk-..." class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-xs text-white mt-1 focus:border-amber-400">
+                        </div>
+
+                        <div class="p-3 bg-amber-950/20 border border-amber-500/30 rounded-lg text-xs text-amber-300">
+                            <i class="fa-solid fa-circle-info mr-1"></i> <strong>Lưu ý:</strong> Nếu bạn không điền API Key, hệ thống sẽ tự động dùng <em>Bộ thuật toán quy tắc ngôn ngữ Offline</em> miễn phí 100% để tạo tiêu đề mới!
+                        </div>
+
+                        <button onclick="saveGeneralConfig()" class="w-full bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold py-2.5 rounded-lg transition shadow">
+                            <i class="fa-solid fa-floppy-disk mr-1"></i> Lưu Cấu Hình AI
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Thiết Kế Thumbnail Tự Động & Live Preview -->
+                <div class="lg:col-span-6 bg-cardbg border border-borderbg rounded-xl p-5 space-y-4">
+                    <div class="border-b border-slate-700/60 pb-3">
+                        <h3 class="font-bold text-slate-200 flex items-center gap-2">
+                            <i class="fa-solid fa-image text-amber-400"></i>
+                            Tạo Ảnh Bìa (Thumbnail) Tự Động Theo Tên Video
+                        </h3>
+                        <p class="text-xs text-slate-400">Tự trích xuất khung hình nét nhất từ video và phủ chữ tiếng Việt nghệ thuật</p>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-xs text-slate-400">Nhập thử tiêu đề để xem trước Thumbnail:</label>
+                            <div class="flex gap-2 mt-1">
+                                <input type="text" id="preview_thumb_title" value="Bí Mật Kinh Ngạc Chưa Từng Được Tiết Lộ" class="flex-1 bg-slate-900 border border-slate-700 rounded px-3 py-2 text-xs text-white focus:border-amber-400">
+                                <button onclick="renderThumbnailPreview()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-4 py-2 rounded font-medium">
+                                    Tạo Thử
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Khung Preview Thumbnail -->
+                        <div class="relative aspect-video w-full bg-slate-950 rounded-lg overflow-hidden border border-slate-700 flex items-center justify-center">
+                            <img id="thumb-preview-img" src="/static/fonts/sample_thumb.jpg" alt="Preview Thumbnail" class="w-full h-full object-cover hidden">
+                            <div id="thumb-preview-placeholder" class="text-center p-4 text-slate-500 text-xs">
+                                <i class="fa-solid fa-photo-film text-3xl mb-2 text-slate-600"></i>
+                                <p>Bấm "Tạo Thử" để xem ảnh bìa mẫu được tạo tự động</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TAB 4: TASKS & HISTORY ================= -->
+        <div id="tab-content-tasks" class="space-y-4 hidden">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="font-bold text-slate-200 text-base flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-emerald-400"></i>
+                        Hàng Đợi Xử Lý & Lịch Sử Reup
+                    </h3>
+                    <p class="text-xs text-slate-400">Tiến trình từng video: Tải -> AI Đổi tên -> FFmpeg Lách bản quyền -> Tạo Thumbnail -> Upload</p>
+                </div>
+                <button onclick="loadTasks()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-1.5">
+                    <i class="fa-solid fa-rotate-right"></i> Làm Mới
+                </button>
+            </div>
+
+            <div class="bg-cardbg border border-borderbg rounded-xl overflow-hidden shadow">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-300">
+                        <thead class="bg-slate-900 text-slate-400 uppercase tracking-wider text-[11px] border-b border-borderbg">
+                            <tr>
+                                <th class="py-3 px-4">Task ID</th>
+                                <th class="py-3 px-4">Nền tảng</th>
+                                <th class="py-3 px-4">Tiêu đề gốc & mới</th>
+                                <th class="py-3 px-4">Trạng thái</th>
+                                <th class="py-3 px-4">Tiến độ</th>
+                                <th class="py-3 px-4">Thumbnail</th>
+                                <th class="py-3 px-4">Thời gian</th>
+                            </tr>
+                        </thead>
+                        <tbody id="task-table-body" class="divide-y divide-slate-800">
+                            <!-- Tasks populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TAB 5: LOGS ================= -->
+        <div id="tab-content-logs" class="space-y-4 hidden">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="font-bold text-slate-200 text-base flex items-center gap-2">
+                        <i class="fa-solid fa-terminal text-teal-400"></i>
+                        Nhật Ký Hệ Thống Thời Gian Thực (Terminal Logs)
+                    </h3>
+                    <p class="text-xs text-slate-400">Theo dõi chi tiết câu lệnh FFmpeg, tiến trình yt-dlp và phản hồi API</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <label class="text-xs text-slate-400 flex items-center gap-1.5 cursor-pointer">
+                        <input type="checkbox" id="auto_scroll_logs" checked class="accent-teal-500 rounded">
+                        <span>Tự cuộn</span>
+                    </label>
+                    <button onclick="loadLogs()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-3 py-1.5 rounded-lg border border-slate-700">
+                        <i class="fa-solid fa-rotate-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 font-mono text-xs text-slate-300 h-[500px] overflow-y-auto space-y-1.5 shadow-inner" id="log-terminal">
+                <!-- Logs populated by JS -->
+            </div>
+        </div>
+
+        <!-- ================= TAB 6: CLOUD DEPLOYMENT GUIDE ================= -->
+        <div id="tab-content-cloud" class="space-y-6 hidden">
+            <div class="bg-cardbg border border-borderbg rounded-xl p-6 space-y-6">
+                <div>
+                    <h3 class="text-lg font-bold text-sky-400 flex items-center gap-2">
+                        <i class="fa-solid fa-cloud"></i> Hướng Dẫn Triển Khai Chạy Miễn Phí Trên Cloud (24/7)
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-1">Bạn không cần treo máy tính tại nhà. Hãy triển khai hệ thống này lên Cloud Free theo các phương án dưới đây.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Phương án 1: Hugging Face Spaces -->
+                    <div class="p-5 bg-slate-900 border border-amber-500/30 rounded-xl space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-amber-400 text-sm">Phương án 1: Hugging Face Spaces (Khuyên Dùng)</span>
+                            <span class="text-[11px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30">16GB RAM Miễn Phí</span>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Hugging Face cung cấp miễn phí môi trường Docker với <strong>2 vCPU và 16GB RAM</strong>, cực kỳ lý tưởng để render FFmpeg mà không lo tràn RAM.
+                        </p>
+                        <ol class="text-xs text-slate-400 list-decimal list-inside space-y-1.5">
+                            <li>Tạo tài khoản tại <a href="https://huggingface.co" target="_blank" class="text-sky-400 underline">huggingface.co</a>.</li>
+                            <li>Tạo một <strong>New Space</strong>, chọn SDK là <strong>Docker (Blank)</strong>.</li>
+                            <li>Tải toàn bộ thư mục mã nguồn này lên repo Space đó (đã có sẵn file <code>Dockerfile</code>).</li>
+                            <li>Hugging Face sẽ tự động build và cung cấp link Web truy cập vĩnh viễn!</li>
+                        </ol>
+                    </div>
+
+                    <!-- Phương án 2: Oracle Cloud Always Free -->
+                    <div class="p-5 bg-slate-900 border border-sky-500/30 rounded-xl space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-sky-400 text-sm">Phương án 2: Oracle Cloud Always Free</span>
+                            <span class="text-[11px] bg-sky-500/20 text-sky-300 px-2 py-0.5 rounded border border-sky-500/30">VPS 24GB RAM 4 Core</span>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Oracle tặng miễn phí trọn đời VPS cấu hình <strong>4 OCPU ARM, 24GB RAM, 200GB SSD</strong> chạy Linux Ubuntu.
+                        </p>
+                        <ol class="text-xs text-slate-400 list-decimal list-inside space-y-1.5">
+                            <li>Đăng ký Oracle Cloud Free Tier.</li>
+                            <li>Tạo máy ảo Ubuntu 22.04 (Ampere ARM).</li>
+                            <li>Cài đặt Docker: <code>curl -fsSL https://get.docker.com | sh</code>.</li>
+                            <li>Chạy ứng dụng: <code>docker compose up -d</code> để app chạy ngầm 24/7.</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal: Thêm Kênh Nguồn Mới -->
+    <div id="add-source-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-cardbg border border-borderbg rounded-xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
+                <h4 id="modal-title" class="font-bold text-white text-sm">Thêm Kênh Nguồn Mới</h4>
+                <button onclick="closeAddSourceModal()" class="text-slate-400 hover:text-white text-base">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="space-y-3 text-xs">
+                <input type="hidden" id="modal-platform">
+                <div>
+                    <label class="text-slate-400 block mb-1">Tên gợi nhớ (Ví dụ: Kênh Hài Kịch 24h):</label>
+                    <input type="text" id="modal-name" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="text-slate-400 block mb-1">Đường link kênh hoặc Channel ID:</label>
+                    <input type="text" id="modal-url" placeholder="https://www.youtube.com/channel/UC... hoặc UC..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="closeAddSourceModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg">Hủy</button>
+                <button onclick="submitAddSource()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg shadow">Lưu Kênh</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Popup -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 px-4 py-3 rounded-lg shadow-xl text-xs font-medium text-white flex items-center space-x-2 transition-all duration-300 transform translate-y-20 opacity-0 pointer-events-none">
+        <i id="toast-icon" class="fa-solid fa-circle-check"></i>
+        <span id="toast-message">Thông báo</span>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
