@@ -129,6 +129,9 @@ class FacebookUploader:
                 if thumbnail_path and os.path.exists(thumbnail_path):
                     FacebookUploader.set_thumbnail(final_video_id, thumbnail_path, config)
 
+                # BƯỚC 5: TỰ ĐỘNG THÍCH (LIKE) VIDEO VỪA ĐĂNG
+                FacebookUploader.like_video(final_video_id, config)
+
                 return {
                     "success": True,
                     "video_id": final_video_id,
@@ -146,6 +149,42 @@ class FacebookUploader:
                 "error": str(e),
                 "message": f"Lỗi upload FB: {str(e)}"
             }
+
+    @staticmethod
+    def like_video(video_id: str, config: Dict[str, Any]) -> bool:
+        """Tự động Thích (Like) video vừa xuất bản trên Facebook Fanpage."""
+        if not video_id:
+            return False
+        page_id = config.get("page_id", "").strip()
+        access_token = config.get("access_token", "").strip()
+        if not access_token:
+            return False
+
+        page_token = access_token
+        try:
+            pt_res = requests.get(
+                f"https://graph.facebook.com/v19.0/{page_id}?fields=access_token&access_token={access_token}",
+                timeout=15
+            )
+            pt_data = pt_res.json()
+            if pt_data.get("access_token"):
+                page_token = pt_data["access_token"]
+        except Exception:
+            pass
+
+        for target in [video_id, f"{page_id}_{video_id}"]:
+            try:
+                res = requests.post(
+                    f"https://graph.facebook.com/v19.0/{target}/likes",
+                    data={"access_token": page_token},
+                    timeout=15
+                )
+                if res.status_code in [200, 201]:
+                    LogManager.log(f"Đã tự động Thích (Like) video Facebook ID: {video_id}", "SUCCESS", "FACEBOOK")
+                    return True
+            except Exception:
+                pass
+        return False
 
     @staticmethod
     def set_thumbnail(video_id: str, thumbnail_path: str, config: Dict[str, Any]) -> bool:

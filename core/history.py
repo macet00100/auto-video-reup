@@ -12,7 +12,6 @@ class HistoryManager:
     def _load_raw() -> Dict[str, Any]:
         os.makedirs(os.path.dirname(HISTORY_FILE), exist_ok=True)
         if not os.path.exists(HISTORY_FILE):
-            # Khởi tạo mặc định với các video đã xử lý trước đây để chống trùng lặp tuyệt đối
             default_history = {
                 "processed_video_ids": [
                     "28iReVaAQN8",
@@ -129,6 +128,7 @@ class HistoryManager:
         """Hòa nhập lịch sử local với lịch sử mới nhất trên origin/main để chống conflict tuyệt đối."""
         try:
             repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+            # 1. Merge processed_history.json
             show_res = subprocess.run(
                 ["git", "show", "origin/main:storage/processed_history.json"],
                 cwd=repo_root,
@@ -148,6 +148,29 @@ class HistoryManager:
                     "history": combined_history
                 }
                 HistoryManager._save_raw(merged_data)
+
+            # 2. Merge replied_comments.json nếu có
+            rep_res = subprocess.run(
+                ["git", "show", "origin/main:storage/replied_comments.json"],
+                cwd=repo_root,
+                capture_output=True,
+                text=True,
+                encoding="utf-8"
+            )
+            if rep_res.returncode == 0 and rep_res.stdout.strip():
+                try:
+                    from core.auto_reply import AutoReplyBot, REPLIED_FILE
+                    remote_rep = json.loads(rep_res.stdout)
+                    local_rep = AutoReplyBot._load_replied_ids()
+                    merged_rep = {
+                        "youtube": list(dict.fromkeys(remote_rep.get("youtube", []) + local_rep.get("youtube", []))),
+                        "facebook": list(dict.fromkeys(remote_rep.get("facebook", []) + local_rep.get("facebook", [])))
+                    }
+                    with open(REPLIED_FILE, "w", encoding="utf-8") as rf:
+                        json.dump(merged_rep, rf, ensure_ascii=False, indent=2)
+                except Exception:
+                    pass
+
         except Exception as e:
             LogManager.log(f"Lỗi khi hòa nhập lịch sử với remote: {e}", "WARNING", "HISTORY")
 
@@ -172,7 +195,7 @@ class HistoryManager:
             subprocess.run(["git", "reset", "origin/main"], cwd=repo_root, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
             # 4. Stage các file dữ liệu
-            cmd_add = ["git", "add", "storage/processed_history.json", "config.json"]
+            cmd_add = ["git", "add", "storage/processed_history.json", "config.json", "storage/replied_comments.json"]
             subprocess.run(cmd_add, cwd=repo_root, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
             # 5. Kiểm tra xem có thay đổi thực sự hay không

@@ -114,9 +114,13 @@ class YouTubeUploader:
             new_video_id = video_data.get("id")
             LogManager.log(f"Upload YouTube thành công! Video ID: {new_video_id}", "SUCCESS", "YOUTUBE")
 
-            # Nếu có thumbnail, upload thumbnail
+            # 1. Cài đặt thumbnail nếu có
             if thumbnail_path and os.path.exists(thumbnail_path) and new_video_id:
                 YouTubeUploader.set_thumbnail(new_video_id, thumbnail_path, config)
+
+            # 2. Tự động Like video vừa đăng tải
+            if new_video_id:
+                YouTubeUploader.like_video(new_video_id, config)
 
             return {
                 "success": True,
@@ -131,6 +135,27 @@ class YouTubeUploader:
                 "error": str(e),
                 "message": f"Lỗi upload: {str(e)}"
             }
+
+    @staticmethod
+    def like_video(video_id: str, config: Dict[str, Any]) -> bool:
+        """Tự động like video vừa xuất bản trên YouTube."""
+        if not video_id:
+            return False
+        access_token = YouTubeUploader.get_valid_access_token(config)
+        if not access_token:
+            return False
+        try:
+            url = f"https://www.googleapis.com/youtube/v3/videos/rate?id={video_id}&rating=like"
+            res = requests.post(url, headers={"Authorization": f"Bearer {access_token}"}, timeout=15)
+            if res.status_code in [200, 204]:
+                LogManager.log(f"Đã tự động Like video YouTube ID: {video_id}", "SUCCESS", "YOUTUBE")
+                return True
+            else:
+                LogManager.log(f"Không thể like video YouTube: {res.text[:120]}", "WARNING", "YOUTUBE")
+                return False
+        except Exception as e:
+            LogManager.log(f"Lỗi khi like video YouTube: {e}", "WARNING", "YOUTUBE")
+            return False
 
     @staticmethod
     def set_thumbnail(video_id: str, thumbnail_path: str, config: Dict[str, Any]) -> bool:
