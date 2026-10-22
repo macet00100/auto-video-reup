@@ -40,12 +40,12 @@
             "refresh_token": ""
         },
         "bypass_rules": {
-            "hflip": false,
+            "hflip": true,
             "remove_logo": true,
             "logo_position": "both-top",
-            "speed": 1.03,
+            "speed": 1.045,
             "pitch_shift": true,
-            "crop_percent": 3,
+            "crop_percent": 3.5,
             "blur_border": false,
             "color_boost": true,
             "change_fps": true,
@@ -85,12 +85,12 @@
             "post_as_reel": false
         },
         "bypass_rules": {
-            "hflip": false,
+            "hflip": true,
             "remove_logo": true,
             "logo_position": "both-top",
-            "speed": 1.04,
+            "speed": 1.045,
             "pitch_shift": true,
-            "crop_percent": 4,
+            "crop_percent": 3.5,
             "blur_border": false,
             "color_boost": true,
             "change_fps": true,

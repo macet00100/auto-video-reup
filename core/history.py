@@ -194,10 +194,9 @@ class HistoryManager:
             # 3. Reset HEAD về origin/main mà vẫn giữ nguyên file working tree (Fast-Forward an toàn)
             subprocess.run(["git", "reset", "origin/main"], cwd=repo_root, capture_output=True, text=True)
 
-            # 4. Stage các file dữ liệu (chỉ stage file thực sự tồn tại hoặc tự khởi tạo nếu thiếu)
+            # 4. Stage các file dữ liệu (chỉ đồng bộ dữ liệu lịch sử và comment đã trả lời, không clobber config)
             candidate_files = [
                 "storage/processed_history.json",
-                "config.json",
                 "storage/replied_comments.json"
             ]
             files_to_add = []
