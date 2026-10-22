@@ -40,7 +40,7 @@
             "refresh_token": ""
         },
         "bypass_rules": {
-            "hflip": true,
+            "hflip": false,
             "remove_logo": true,
             "logo_position": "both-top",
             "speed": 1.045,
@@ -85,7 +85,7 @@
             "post_as_reel": false
         },
         "bypass_rules": {
-            "hflip": true,
+            "hflip": false,
             "remove_logo": true,
             "logo_position": "both-top",
             "speed": 1.045,

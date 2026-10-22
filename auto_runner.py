@@ -400,7 +400,7 @@ def process_and_upload_simultaneously(
         # - crop_percent=3.5 (Cắt viền phá tỷ lệ khung hình gốc)
         # - color_boost=True (Tăng tương phản & màu sắc thay đổi hash điểm ảnh)
         combined_rules = {
-            "hflip": True,
+            "hflip": False,
             "remove_logo": True,
             "speed": 1.045,
             "pitch_shift": True,
