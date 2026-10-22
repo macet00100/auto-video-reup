@@ -459,8 +459,7 @@ def process_and_upload_simultaneously(
             clean_fb_desc = (
                 f"{new_title}\n\n"
                 f"Mọi người xem video thấy hay nhớ bấm Like và Follow Fanpage để đón xem những tập tiếp theo nhé!\n\n"
-                f"#film #reviewphim #phimhay #reels #xuhuong #trending\n\n"
-                f"[RefID: {video_id}]"
+                f"#film #reviewphim #phimhay #reels #xuhuong #trending"
             )
             LogManager.log(f"[{task_id}] Đang tải lên Facebook...", "INFO", "FACEBOOK")
             try:
