@@ -69,4 +69,5 @@ jobs:
         run: |
           git config --global user.name "AutoReup Bot"
           git config --global user.email "bot@autoreup.local"
-          python -c "from core.history import HistoryManager; HistoryManager.sync_to_git('chore: auto updated last processed video state [skip ci]')" || echo "Không có thay đổi cần lưu"
+          python -c "from core.history import HistoryManager; HistoryManager.sync_to_git('chore: auto updated last processed video state [skip ci]')" || true
+          git status

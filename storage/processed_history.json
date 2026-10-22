@@ -28,7 +28,12 @@
     "oA802OO3pcI",
     "sB1P51AHPRU",
     "gJMiej1E3TE",
-    "llJDQ8OzR5E"
+    "llJDQ8OzR5E",
+    "oTZRuQ2lWBg",
+    "rvAgXvLNCIA",
+    "kZ4Veh1WeWY",
+    "6O6lymK77-M",
+    "DjBVn78AZY0"
   ],
   "history": {
     "e93_3WKmFHg": {
@@ -215,6 +220,40 @@
       "facebook_uploaded": true,
       "processed_at": "2026-10-21T13:08:53.035802",
       "extra": {}
+    },
+    "oTZRuQ2lWBg": {
+      "title": "Xuyên sách giữ ngọc thần, nghịch thiên đổi mệnh thoát cảnh chết thảm",
+      "youtube_uploaded": true,
+      "facebook_uploaded": true,
+      "processed_at": "2026-10-22T04:00:00"
+    },
+    "rvAgXvLNCIA": {
+      "title": "Trọng sinh về quê chịu khổ kiếp trước...",
+      "youtube_uploaded": true,
+      "facebook_uploaded": true,
+      "processed_at": "2026-10-22T03:00:00"
+    },
+    "kZ4Veh1WeWY": {
+      "title": "Xuyên không thành thôn nữ nghèo...",
+      "youtube_uploaded": true,
+      "facebook_uploaded": true,
+      "processed_at": "2026-10-22T02:00:00"
+    },
+    "6O6lymK77-M": {
+      "title": "Xuyên không làm công tử trác táng...",
+      "youtube_uploaded": true,
+      "facebook_uploaded": true,
+      "processed_at": "2026-10-22T02:30:00"
+    },
+    "DjBVn78AZY0": {
+      "title": "Xuyên Không Làm Thái Tử Phế Vật, Chàng Dùng Xi Măng...",
+      "youtube_uploaded": false,
+      "facebook_uploaded": false,
+      "processed_at": "2026-10-22T01:00:00",
+      "extra": {
+        "skipped": true,
+        "reason": "Thời lượng > 180 phút"
+      }
     }
   }
 }

@@ -186,34 +186,58 @@ class HistoryManager:
             subprocess.run(["git", "config", "user.email", "bot@autoreup.local"], cwd=repo_root, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
             # 1. Fetch remote origin/main mới nhất
-            subprocess.run(["git", "fetch", "origin", "main"], cwd=repo_root, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(["git", "fetch", "origin", "main"], cwd=repo_root, capture_output=True, text=True)
 
             # 2. Hòa nhập file lịch sử local với remote
             HistoryManager.merge_with_remote()
 
             # 3. Reset HEAD về origin/main mà vẫn giữ nguyên file working tree (Fast-Forward an toàn)
-            subprocess.run(["git", "reset", "origin/main"], cwd=repo_root, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run(["git", "reset", "origin/main"], cwd=repo_root, capture_output=True, text=True)
 
-            # 4. Stage các file dữ liệu
-            cmd_add = ["git", "add", "storage/processed_history.json", "config.json", "storage/replied_comments.json"]
-            subprocess.run(cmd_add, cwd=repo_root, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            # 4. Stage các file dữ liệu (chỉ stage file thực sự tồn tại hoặc tự khởi tạo nếu thiếu)
+            candidate_files = [
+                "storage/processed_history.json",
+                "config.json",
+                "storage/replied_comments.json"
+            ]
+            files_to_add = []
+            for rel in candidate_files:
+                fpath = os.path.join(repo_root, rel)
+                if not os.path.exists(fpath):
+                    try:
+                        os.makedirs(os.path.dirname(fpath), exist_ok=True)
+                        with open(fpath, "w", encoding="utf-8") as f:
+                            f.write("{}\n")
+                    except Exception:
+                        pass
+                if os.path.exists(fpath):
+                    files_to_add.append(rel)
+
+            if files_to_add:
+                add_res = subprocess.run(["git", "add"] + files_to_add, cwd=repo_root, capture_output=True, text=True)
+                if add_res.returncode != 0:
+                    LogManager.log(f"Git add cảnh báo: {add_res.stderr.strip()}", "WARNING", "GIT")
 
             # 5. Kiểm tra xem có thay đổi thực sự hay không
             diff_res = subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=repo_root)
             if diff_res.returncode == 0:
+                LogManager.log("Không có thay đổi mới cần commit lên Git.", "INFO", "GIT")
                 return True
 
             cmd_commit = ["git", "commit", "-m", commit_msg]
-            subprocess.run(cmd_commit, cwd=repo_root, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            commit_res = subprocess.run(cmd_commit, cwd=repo_root, capture_output=True, text=True)
+            if commit_res.returncode != 0:
+                LogManager.log(f"Git commit không thành công: {commit_res.stderr.strip()}", "WARNING", "GIT")
+                return False
 
-            cmd_push = ["git", "push", "origin", "main"]
-            res = subprocess.run(cmd_push, cwd=repo_root, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            cmd_push = ["git", "push", "origin", "HEAD:main"]
+            res = subprocess.run(cmd_push, cwd=repo_root, capture_output=True, text=True)
 
             if res.returncode == 0:
-                LogManager.log("Đã đồng bộ lịch sử video lên Git thành công!", "SUCCESS", "GIT")
+                LogManager.log(f"Đã đồng bộ lịch sử video lên Git thành công! ({commit_msg})", "SUCCESS", "GIT")
                 return True
             else:
-                LogManager.log("Không thể push Git, sẽ thử lại ở chu kỳ kế tiếp.", "WARNING", "GIT")
+                LogManager.log(f"Không thể push Git: {res.stderr.strip()}", "WARNING", "GIT")
                 return False
         except Exception as e:
             LogManager.log(f"Lỗi khi đồng bộ Git: {e}", "WARNING", "GIT")

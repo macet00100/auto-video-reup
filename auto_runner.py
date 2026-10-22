@@ -56,14 +56,17 @@ def clean_all_temp_cache():
                         pass
     LogManager.log(f"Đã dọn sạch {cleaned_count} file cache tạm để tối ưu ổ đĩa.", "INFO", "CLEANUP")
 
-def get_destination_channel_video_titles(cfg: Dict[str, Any], max_results: int = 40) -> List[str]:
-    """Lấy danh sách tiêu đề các video mới nhất đã được tải lên kênh YouTube đích để chống reup trùng tuyệt đối."""
-    titles = []
+def get_destination_channel_uploaded_info(cfg: Dict[str, Any], max_results: int = 50) -> Dict[str, Any]:
+    """Lấy danh sách tiêu đề và RefID của các video mới nhất đã tải lên kênh YouTube đích để chống trùng lặp vĩnh viễn."""
+    info = {
+        "titles": [],
+        "ref_ids": set()
+    }
     try:
         yt_dest = cfg.get("youtube", {}).get("destination", {})
         token = YouTubeUploader.get_valid_access_token(yt_dest)
         if not token:
-            return titles
+            return info
 
         # Lấy uploads playlist ID của kênh đích
         ch_req = urllib.request.Request(
@@ -74,7 +77,7 @@ def get_destination_channel_video_titles(cfg: Dict[str, Any], max_results: int =
             ch_data = json.loads(resp.read().decode())
             items = ch_data.get("items", [])
             if not items:
-                return titles
+                return info
             uploads_id = items[0]["contentDetails"]["relatedPlaylists"]["uploads"]
 
         # Lấy danh sách video đã tải lên
@@ -85,23 +88,35 @@ def get_destination_channel_video_titles(cfg: Dict[str, Any], max_results: int =
         with urllib.request.urlopen(pl_req, timeout=10) as resp2:
             pl_data = json.loads(resp2.read().decode())
             for it in pl_data.get("items", []):
-                t = it.get("snippet", {}).get("title", "")
+                snippet = it.get("snippet", {})
+                t = snippet.get("title", "")
+                d = snippet.get("description", "")
                 if t:
-                    titles.append(t)
+                    info["titles"].append(t)
+                if d:
+                    for r_id in re.findall(r'\[(?:RefID|SourceID|Ref):\s*([a-zA-Z0-9_-]+)\]', d):
+                        info["ref_ids"].add(r_id)
     except Exception as e:
         LogManager.log(f"Không thể lấy danh sách video kênh đích: {e}", "WARNING", "DUPLICATE_CHECK")
-    return titles
+    return info
 
-def is_title_duplicate(title1: str, title2: str, threshold: float = 0.70) -> bool:
-    """So sánh 2 tiêu đề video dựa trên từ khóa đặc trưng (loại bỏ hook giật tít rác và stop words)."""
-    stop_words = {"cực", "sốc", "cận", "cảnh", "khám", "phá", "ngay", "full", "hd", "reviewphim", "phimhay", "reels", "viral", "shorts", "phần", "tập", "p"}
+def is_title_duplicate(title1: str, title2: str, threshold: float = 0.40) -> bool:
+    """So sánh 2 tiêu đề video dựa trên từ khóa nội dung đặc trưng (loại bỏ từ nối, đại từ và stop words)."""
+    stop_words = {
+        "cực", "sốc", "cận", "cảnh", "khám", "phá", "ngay", "full", "hd", "reviewphim", "phimhay",
+        "reels", "viral", "shorts", "phần", "tập", "p", "cô", "chàng", "nàng", "ai", "ngờ", "lại",
+        "thành", "về", "để", "mà", "còn", "bị", "cho", "của", "những", "các", "và", "với", "trong",
+        "được", "làm", "dùng", "ra", "vào", "có", "thì", "ở", "từ", "qua", "sau", "khi", "lên"
+    }
     words1 = {w for w in re.findall(r'[\w\d]+', title1.lower()) if w not in stop_words and len(w) > 1}
     words2 = {w for w in re.findall(r'[\w\d]+', title2.lower()) if w not in stop_words and len(w) > 1}
     if not words1 or not words2:
         return False
     inter = words1.intersection(words2)
-    similarity = len(inter) / min(len(words1), len(words2))
-    return similarity >= threshold
+    min_len = min(len(words1), len(words2))
+    similarity = len(inter) / min_len if min_len > 0 else 0
+    # Nếu trùng từ 4 từ khóa đặc trưng trở lên HOẶC độ tương đồng >= 40% -> Đều là trùng lặp phim
+    return len(inter) >= 4 or similarity >= threshold
 
 def get_channel_latest_videos(channel_id: str, cfg: Dict[str, Any], max_results: int = 5) -> List[Dict[str, str]]:
     """
@@ -195,9 +210,11 @@ def run_headless_pipeline():
     yt_cfg = cfg.get("youtube", {})
     fb_cfg = cfg.get("facebook", {})
 
-    # Lấy danh sách video đã có trên kênh đích YouTube để bảo vệ 2 lớp chống trùng lặp
-    destination_titles = get_destination_channel_video_titles(cfg, max_results=40)
-    LogManager.log(f"Đã nạp {len(destination_titles)} video đã có trên kênh YouTube đích để kiểm tra trùng lặp.", "INFO", "WORKER")
+    # Lấy thông tin các video đã có trên kênh đích YouTube để bảo vệ đa lớp chống trùng lặp tuyệt đối
+    destination_info = get_destination_channel_uploaded_info(cfg, max_results=50)
+    destination_titles = destination_info.get("titles", [])
+    destination_ref_ids = destination_info.get("ref_ids", set())
+    LogManager.log(f"Đã nạp {len(destination_titles)} video và {len(destination_ref_ids)} RefID đã có trên kênh YouTube đích để kiểm tra trùng lặp.", "INFO", "WORKER")
 
     # Tập hợp danh sách các kênh nguồn duy nhất từ cấu hình YouTube và Facebook
     all_sources = []
@@ -213,7 +230,8 @@ def run_headless_pipeline():
                 all_sources.append({
                     "channel_id": channel_id,
                     "name": s.get("name", channel_id),
-                    "url": s.get("url", f"https://www.youtube.com/channel/{channel_id}")
+                    "url": s.get("url", f"https://www.youtube.com/channel/{channel_id}"),
+                    "last_video_id": s.get("last_video_id", "")
                 })
 
     if not all_sources:
@@ -224,6 +242,7 @@ def run_headless_pipeline():
     for source_info in all_sources:
         channel_id = source_info["channel_id"]
         channel_name = source_info["name"]
+        last_processed_vid = source_info.get("last_video_id", "")
 
         try:
             videos = get_channel_latest_videos(channel_id, cfg, max_results=5)
@@ -241,12 +260,18 @@ def run_headless_pipeline():
                     LogManager.log(f"Video [{video_title}] (ID: {video_id}) đã có trong lịch sử đã xử lý -> BỎ QUA.", "INFO", "WORKER")
                     continue
 
-                # LỚP 2: Kiểm tra đối chiếu với danh sách video đã tồn tại trên kênh đích YouTube
+                # LỚP 2: Kiểm tra RefID trực tiếp trên kênh đích YouTube (Chống trùng ngay cả khi mất file lịch sử)
+                if video_id in destination_ref_ids:
+                    LogManager.log(f"Video [{video_title}] (ID: {video_id}) đã có RefID trên kênh đích YouTube -> Đánh dấu lịch sử và BỎ QUA.", "WARNING", "WORKER")
+                    HistoryManager.record_processed(video_id, video_title, yt_uploaded=True, fb_uploaded=True)
+                    continue
+
+                # LỚP 3: Kiểm tra đối chiếu tiêu đề thông minh với danh sách video đã tồn tại trên kênh đích YouTube
                 clean_test_title = AIRewriter.clean_and_format_title(video_title)
                 is_duplicate = False
                 for dt in destination_titles:
-                    if is_title_duplicate(clean_test_title, dt):
-                        LogManager.log(f"Video [{video_title}] đã có trên kênh đích YouTube ('{dt}') -> Đánh dấu lịch sử và BỎ QUA.", "WARNING", "WORKER")
+                    if is_title_duplicate(clean_test_title, dt) or is_title_duplicate(video_title, dt):
+                        LogManager.log(f"Video [{video_title}] khớp tiêu đề với video đã có ('{dt}') -> Đánh dấu lịch sử và BỎ QUA.", "WARNING", "WORKER")
                         HistoryManager.record_processed(video_id, video_title, yt_uploaded=True, fb_uploaded=True)
                         is_duplicate = True
                         break
@@ -270,6 +295,7 @@ def run_headless_pipeline():
                 if handled:
                     destination_titles.append(video_title)
                     destination_titles.append(AIRewriter.clean_and_format_title(video_title))
+                    destination_ref_ids.add(video_id)
                     for s in yt_cfg.get("sources", []):
                         if ChannelMonitor.extract_youtube_channel_id(s.get("id") or s.get("url", "")) == channel_id:
                             s["last_video_id"] = video_id
@@ -395,7 +421,8 @@ def process_and_upload_simultaneously(
                 f"{new_title}\n\n"
                 f"Chào mừng các bạn đã đến với kênh! Hãy bấm Like, Đăng Ký Kênh và Nhấn Chuông thông báo để không bỏ lỡ những video mới và hay nhất mỗi ngày nhé!\n\n"
                 f"Cảm ơn mọi người đã luôn đồng hành và ủng hộ kênh!\n\n"
-                f"#review #phimhay #reviewphim #shorts #viral #trending #phimmoi"
+                f"#review #phimhay #reviewphim #shorts #viral #trending #phimmoi\n\n"
+                f"[RefID: {video_id}]"
             )
             LogManager.log(f"[{task_id}] Đang tải lên YouTube...", "INFO", "YOUTUBE")
             try:
@@ -426,7 +453,8 @@ def process_and_upload_simultaneously(
             clean_fb_desc = (
                 f"{new_title}\n\n"
                 f"Mọi người xem video thấy hay nhớ bấm Like và Follow Fanpage để đón xem những tập tiếp theo nhé!\n\n"
-                f"#film #reviewphim #phimhay #reels #xuhuong #trending"
+                f"#film #reviewphim #phimhay #reels #xuhuong #trending\n\n"
+                f"[RefID: {video_id}]"
             )
             LogManager.log(f"[{task_id}] Đang tải lên Facebook...", "INFO", "FACEBOOK")
             try:
