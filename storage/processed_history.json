@@ -47,7 +47,8 @@
     "GOt8x9AHXQY",
     "367MH85t2s4",
     "fP3ueH75w5g",
-    "PqUWPazL2RQ"
+    "PqUWPazL2RQ",
+    "wYu3qIAUk7w"
   ],
   "history": {
     "e93_3WKmFHg": {
@@ -367,6 +368,16 @@
       "facebook_uploaded": true,
       "processed_at": "2026-10-23T09:32:04.034573",
       "extra": {}
+    },
+    "wYu3qIAUk7w": {
+      "title": "Sống Lại Biết Trước Tương Lai, Em Gái Vội Cướp Chồng Tốt Của Chị, Nào Ngờ Tự Rước Bất Hạnh!",
+      "youtube_uploaded": false,
+      "facebook_uploaded": false,
+      "processed_at": "2026-10-23T10:16:53.555475",
+      "extra": {
+        "skipped": true,
+        "reason": "Video dài 3h28m (quá giới hạn tối đa 3 tiếng)"
+      }
     }
   }
 }
