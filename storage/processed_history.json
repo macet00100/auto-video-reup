@@ -57,7 +57,8 @@
     "uM-liSX3VYs",
     "tqDz-puP5HU",
     "wGmW-Netoqk",
-    "k2UEFGFIqmg"
+    "k2UEFGFIqmg",
+    "orHgaWe_9-M"
   ],
   "history": {
     "e93_3WKmFHg": {
@@ -465,6 +466,16 @@
       "facebook_uploaded": true,
       "processed_at": "2026-10-24T12:02:19.831396",
       "extra": {}
+    },
+    "orHgaWe_9-M": {
+      "title": "Mẹ Ruột Coi Thường Cô, Cưng Chiều Con Nuôi, Ai Ngờ Cô Đỗ Trường Số 1, Con Nuôi Trượt Sấp Mặt!",
+      "youtube_uploaded": false,
+      "facebook_uploaded": false,
+      "processed_at": "2026-10-24T13:16:39.190590",
+      "extra": {
+        "skipped": true,
+        "reason": "Video dài 3h50m (quá giới hạn tối đa 3 tiếng)"
+      }
     }
   }
 }
