@@ -50,7 +50,8 @@
     "i7nunWt7v5g",
     "63A67QK2hjM",
     "EJ8QjSCu7qc",
-    "ELNWY4YyvsI"
+    "ELNWY4YyvsI",
+    "PxqNIL9kjLY"
   ],
   "history": {
     "e93_3WKmFHg": {
@@ -399,6 +400,16 @@
       "extra": {
         "skipped": true,
         "reason": "Video dài 3h15m (quá giới hạn tối đa 3 tiếng)"
+      }
+    },
+    "PxqNIL9kjLY": {
+      "title": "P2 Xuyên Không Có Hệ Thống Sát Thần, Chàng Thu Phục Muội Tướng Địch Dẹp Loạn Quân Doanh.",
+      "youtube_uploaded": false,
+      "facebook_uploaded": false,
+      "processed_at": "2026-10-24T09:01:08.738921",
+      "extra": {
+        "skipped": true,
+        "reason": "Video dài 3h39m (quá giới hạn tối đa 3 tiếng)"
       }
     }
   }
