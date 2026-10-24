@@ -52,7 +52,8 @@
     "EJ8QjSCu7qc",
     "ELNWY4YyvsI",
     "PxqNIL9kjLY",
-    "UoqgKDqYCqA"
+    "UoqgKDqYCqA",
+    "fP3ueH75w5g"
   ],
   "history": {
     "e93_3WKmFHg": {
@@ -421,6 +422,16 @@
       "extra": {
         "skipped": true,
         "reason": "Video dài 3h58m (quá giới hạn tối đa 3 tiếng)"
+      }
+    },
+    "fP3ueH75w5g": {
+      "title": "P2 Xuyên Không Lái Xe Tải Về Cổ Đại, Hai Vợ Chồng Mang Vũ Khí Hiện Đại Quét Sạch Phản Tặc.",
+      "youtube_uploaded": false,
+      "facebook_uploaded": false,
+      "processed_at": "2026-10-24T09:16:39.903375",
+      "extra": {
+        "skipped": true,
+        "reason": "Video dài 3h22m (quá giới hạn tối đa 3 tiếng)"
       }
     }
   }
