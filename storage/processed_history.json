@@ -49,7 +49,8 @@
     "DbBcvvn7yiM",
     "i7nunWt7v5g",
     "63A67QK2hjM",
-    "EJ8QjSCu7qc"
+    "EJ8QjSCu7qc",
+    "ELNWY4YyvsI"
   ],
   "history": {
     "e93_3WKmFHg": {
@@ -389,6 +390,16 @@
       "facebook_uploaded": true,
       "processed_at": "2026-10-24T08:59:37.654974",
       "extra": {}
+    },
+    "ELNWY4YyvsI": {
+      "title": "Kiếp Trước Bị Chú Rể Bỏ Rơi Ngày Cưới, Sống Lại Cô Hủy Hôn, Ai Ngờ Chú Ruột Hắn Lại Che Chở Cô!",
+      "youtube_uploaded": false,
+      "facebook_uploaded": false,
+      "processed_at": "2026-10-24T09:01:03.833525",
+      "extra": {
+        "skipped": true,
+        "reason": "Video dài 3h15m (quá giới hạn tối đa 3 tiếng)"
+      }
     }
   }
 }
