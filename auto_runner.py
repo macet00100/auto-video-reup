@@ -425,21 +425,24 @@ def process_and_upload_simultaneously(
 
         # 5.1 Đăng YouTube
         if upload_to_yt:
-            clean_yt_desc = (
-                f"{new_title}\n\n"
-                f"Chào mừng các bạn đã đến với kênh! Hãy bấm Like, Đăng Ký Kênh và Nhấn Chuông thông báo để không bỏ lỡ những video mới và hay nhất mỗi ngày nhé!\n\n"
-                f"Cảm ơn mọi người đã luôn đồng hành và ủng hộ kênh!\n\n"
-                f"#review #phimhay #reviewphim #shorts #viral #trending #phimmoi\n\n"
-                f"[RefID: {video_id}]"
+            # Tạo mô tả chuẩn SEO YouTube và bộ 20+ thẻ tags đề xuất
+            seo_tags = AIRewriter.get_recommended_tags(new_title)
+            clean_yt_desc = AIRewriter.generate_seo_description(
+                title=new_title,
+                orig_title=actual_title,
+                video_id=video_id,
+                gemini_key=general_cfg.get("gemini_api_key"),
+                openai_key=general_cfg.get("openai_api_key")
             )
-            LogManager.log(f"[{task_id}] Đang tải lên YouTube...", "INFO", "YOUTUBE")
+            LogManager.log(f"[{task_id}] Đang tải lên YouTube kèm {len(seo_tags)} thẻ tags SEO...", "INFO", "YOUTUBE")
             try:
                 yt_res = YouTubeUploader.upload(
                     video_path=processed_video,
                     title=new_title,
                     description=clean_yt_desc,
                     thumbnail_path=thumb_path,
-                    config=yt_cfg.get("destination", {})
+                    config=yt_cfg.get("destination", {}),
+                    tags=seo_tags
                 )
                 yt_success = yt_res.get("success", False) if isinstance(yt_res, dict) else False
                 if yt_success:
@@ -459,9 +462,10 @@ def process_and_upload_simultaneously(
         # 5.2 Đăng Facebook
         if upload_to_fb:
             clean_fb_desc = (
-                f"{new_title}\n\n"
-                f"Mọi người xem video thấy hay nhớ bấm Like và Follow Fanpage để đón xem những tập tiếp theo nhé!\n\n"
-                f"#film #reviewphim #phimhay #reels #xuhuong #trending"
+                f"🎬 {new_title}\n\n"
+                f"🔥 Đón xem trọn bộ phim kịch tính cực cuốn! Cùng bình luận cảm nghĩ của bạn về diễn biến tập này nhé.\n\n"
+                f"👉 Nhớ bấm Like và Theo Dõi Fanpage để cập nhật ngay những tập phim mới nhất mỗi ngày!\n\n"
+                f"#reviewphim #phimhay #phimngantrungquoc #tomtatphim #reels #xuhuong #trending"
             )
             LogManager.log(f"[{task_id}] Đang tải lên Facebook...", "INFO", "FACEBOOK")
             try:

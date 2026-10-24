@@ -2,7 +2,7 @@ import os
 import json
 import base64
 import requests
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from core.task_queue import LogManager
 
 class YouTubeUploader:
@@ -59,9 +59,12 @@ class YouTubeUploader:
         video_path: str,
         title: str,
         description: str,
-        thumbnail_path: Optional[str],
-        config: Dict[str, Any]
+        thumbnail_path: Optional[str] = None,
+        config: Dict[str, Any] = None,
+        tags: Optional[List[str]] = None
     ) -> Dict[str, Any]:
+        if config is None:
+            config = {}
         access_token = YouTubeUploader.get_valid_access_token(config)
         privacy_status = config.get("privacy_status", "public")
         category_id = config.get("category_id", "24")
@@ -82,13 +85,26 @@ class YouTubeUploader:
             # Nếu người dùng có access token Google API
             headers = {"Authorization": f"Bearer {access_token}"}
             
+            # Gán bộ thẻ tags SEO chuẩn đề xuất nếu không truyền vào
+            if not tags:
+                tags = [
+                    "review phim", "review phim hay", "tóm tắt phim", "phim ngắn trung quốc",
+                    "phim trung quốc", "phim xuyên không", "phim trọng sinh", "review phim ngắn",
+                    "phim hay 2026", "phim mới", "phim thuyết minh", "phim tổng tài",
+                    "review phim trung quốc", "phim ngắn hay", "phim trung quốc mới nhất",
+                    "phim hay mỗi ngày", "tóm tắt phim hay", "mọt phim", "phim full bộ"
+                ]
+
             # Khởi tạo resumable upload session
             init_url = "https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status"
             metadata = {
                 "snippet": {
                     "title": title[:100],
                     "description": description[:4500],
-                    "categoryId": category_id
+                    "tags": tags[:30],
+                    "categoryId": category_id,
+                    "defaultLanguage": "vi",
+                    "defaultAudioLanguage": "vi"
                 },
                 "status": {
                     "privacyStatus": privacy_status

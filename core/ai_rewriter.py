@@ -1,5 +1,5 @@
 import re
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 from core.task_queue import LogManager
 
 class AIRewriter:
@@ -207,3 +207,130 @@ class AIRewriter:
             final_title = final_title[:95].rsplit(' ', 1)[0]
 
         return final_title.strip()
+
+    @staticmethod
+    def get_recommended_tags(title: str) -> List[str]:
+        """
+        Tạo danh sách 20-30 thẻ tags chuẩn SEO YouTube:
+        - Tags cốt lõi có lượt tìm kiếm cao nhất (high search volume).
+        - Tags theo thể loại được bóc tách tự động từ tiêu đề (xuyên không, tổng tài, trọng sinh, cổ trang...).
+        - Giới hạn tổng ký tự dưới 450 (YouTube cho phép tối đa 500 ký tự).
+        """
+        title_lower = title.lower()
+        tags = [
+            "review phim",
+            "review phim hay",
+            "tóm tắt phim",
+            "phim ngắn trung quốc",
+            "phim trung quốc",
+            "phim hay 2026",
+            "phim mới",
+            "phim thuyết minh",
+            "phim full bộ",
+            "review phim ngắn",
+            "phim trung quốc mới nhất",
+            "phim hay mỗi ngày",
+            "tóm tắt phim hay",
+            "mọt phim",
+            "phim ngắn hay",
+            "phim trọn bộ"
+        ]
+
+        # Bổ sung tags theo chủ đề / từ khóa phát hiện trong tiêu đề
+        if any(k in title_lower for k in ["xuyên", "xuyên không"]):
+            tags.extend(["phim xuyên không", "xuyên không", "xuyên không cổ đại"])
+        if any(k in title_lower for k in ["trọng sinh", "sống lại", "đời trước", "kiếp trước"]):
+            tags.extend(["phim trọng sinh", "trọng sinh", "trọng sinh báo thù"])
+        if any(k in title_lower for k in ["tổng tài", "chủ tịch", "giả nghèo", "tập đoàn"]):
+            tags.extend(["phim tổng tài", "tổng tài", "chủ tịch giả nghèo", "tổng tài bá đạo"])
+        if any(k in title_lower for k in ["phu nhân", "tiểu thư", "hào môn", "thiếu gia"]):
+            tags.extend(["hào môn thế gia", "phim hào môn", "phu nhân"])
+        if any(k in title_lower for k in ["gia đình", "mẹ", "cha", "con gái", "con trai", "nhà", "nhà nghèo"]):
+            tags.extend(["phim gia đình", "tâm lý tình cảm", "phim cảm động"])
+        if any(k in title_lower for k in ["báo thù", "trả thù", "đòi lại", "tính sổ"]):
+            tags.extend(["phim báo thù", "báo thù cực cuốn"])
+        if any(k in title_lower for k in ["cổ đại", "hoàng cung", "nương nương", "vương gia", "hoàng đế"]):
+            tags.extend(["phim cổ trang", "cổ trang trung quốc"])
+
+        # Lọc unique duy trì thứ tự
+        seen = set()
+        unique_tags = []
+        for tag in tags:
+            tag_clean = tag.strip().lower()
+            if tag_clean and tag_clean not in seen:
+                seen.add(tag_clean)
+                unique_tags.append(tag.strip())
+
+        # Kiểm tra tổng độ dài ký tự < 450
+        final_tags = []
+        current_len = 0
+        for tag in unique_tags:
+            if current_len + len(tag) + 1 > 450 or len(final_tags) >= 30:
+                break
+            final_tags.append(tag)
+            current_len += len(tag) + 1
+
+        return final_tags
+
+    @staticmethod
+    def generate_seo_description(
+        title: str,
+        orig_title: str = "",
+        video_id: str = "",
+        gemini_key: Optional[str] = None,
+        openai_key: Optional[str] = None
+    ) -> str:
+        """
+        Tạo mô tả video chuẩn SEO YouTube thuật toán đề xuất:
+        1. Tiêu đề nổi bật + Hook thu hút.
+        2. Tóm tắt cốt truyện lôi cuốn (AI Gemini / template dự phòng).
+        3. Lời kêu gọi hành động (Call To Action: Like, Subscribe, Comment).
+        4. Cụm từ khóa tìm kiếm (Search Keywords) & Hashtags thịnh hành.
+        5. RefID để theo dõi chống trùng lặp.
+        """
+        synopsis = ""
+        # Thử sinh tóm tắt bằng Gemini nếu có key
+        if gemini_key and gemini_key.strip():
+            try:
+                import requests
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key={gemini_key.strip()}"
+                prompt = (
+                    f"Bạn là biên tập viên review phim ngắn.\n"
+                    f"Dựa vào tiêu đề phim: '{title}', hãy viết đúng 2-3 câu tóm tắt cốt truyện mở đầu thật kịch tính, lôi cuốn và tạo tò mò cho khán giả.\n"
+                    f"Yêu cầu: Không spoilers kết thúc, văn phong tự nhiên lôi cuốn, dưới 60 từ. Chỉ trả về đoạn văn tóm tắt, không giải thích."
+                )
+                payload = {"contents": [{"parts": [{"text": prompt}]}]}
+                res = requests.post(url, headers={"Content-Type": "application/json"}, json=payload, timeout=10)
+                if res.status_code == 200:
+                    data = res.json()
+                    candidates = data.get("candidates", [])
+                    if candidates:
+                        raw_text = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+                        if raw_text.strip():
+                            synopsis = raw_text.strip().replace('"', '')
+            except Exception as e:
+                LogManager.log(f"Lỗi tạo tóm tắt qua Gemini: {e}", "WARNING", "AI")
+
+        if not synopsis:
+            synopsis = (
+                "Một câu chuyện đầy bất ngờ và kịch tính với những tình tiết hấp dẫn không thể rời mắt. "
+                "Liệu số phận của các nhân vật sẽ đi về đâu khi những bí mật dần được hé lộ? "
+                "Cùng theo dõi trọn vẹn diễn biến bộ phim ngay sau đây!"
+            )
+
+        ref_line = f"\n\n[RefID: {video_id}]" if video_id else ""
+
+        desc = (
+            f"🎬 {title}\n\n"
+            f"📖 NỘI DUNG PHIM:\n"
+            f"{synopsis}\n\n"
+            f"🔔 ĐĂNG KÝ KÊNH ỦNG HỘ:\n"
+            f"👉 Nhấn Like & Đăng Ký Kênh để không bỏ lỡ những bộ phim mới và hay nhất mỗi ngày!\n"
+            f"👉 Đừng quên để lại cảm nghĩ của bạn dưới phần bình luận nhé!\n\n"
+            f"📌 TỪ KHÓA TÌM KIẾM:\n"
+            f"review phim, tóm tắt phim, phim ngắn trung quốc, phim trung quốc mới nhất, "
+            f"phim thuyết minh, phim hay 2026, phim ngắn chọn lọc, phim full bộ\n\n"
+            f"#reviewphim #phimhay #phimngantrungquoc #tomtatphim #phimmoi #phimthuyetminh #xuhuong"
+            f"{ref_line}"
+        )
+        return desc
