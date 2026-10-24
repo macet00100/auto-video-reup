@@ -100,13 +100,15 @@ def get_destination_channel_uploaded_info(cfg: Dict[str, Any], max_results: int 
         LogManager.log(f"Không thể lấy danh sách video kênh đích: {e}", "WARNING", "DUPLICATE_CHECK")
     return info
 
-def is_title_duplicate(title1: str, title2: str, threshold: float = 0.40) -> bool:
-    """So sánh 2 tiêu đề video dựa trên từ khóa nội dung đặc trưng (loại bỏ từ nối, đại từ và stop words)."""
+def is_title_duplicate(title1: str, title2: str, threshold: float = 0.45) -> bool:
+    """So sánh 2 tiêu đề video dựa trên từ khóa nội dung đặc trưng (loại bỏ từ nối, đại từ và từ ngữ thể loại đại trà)."""
     stop_words = {
         "cực", "sốc", "cận", "cảnh", "khám", "phá", "ngay", "full", "hd", "reviewphim", "phimhay",
         "reels", "viral", "shorts", "phần", "tập", "p", "cô", "chàng", "nàng", "ai", "ngờ", "lại",
         "thành", "về", "để", "mà", "còn", "bị", "cho", "của", "những", "các", "và", "với", "trong",
-        "được", "làm", "dùng", "ra", "vào", "có", "thì", "ở", "từ", "qua", "sau", "khi", "lên"
+        "được", "làm", "dùng", "ra", "vào", "có", "thì", "ở", "từ", "qua", "sau", "khi", "lên",
+        "xuyên", "không", "truyện", "sách", "kiếp", "trước", "sống", "lại", "trọng", "sinh",
+        "hệ", "thống", "kích", "hoạt", "người", "nhà", "cả", "nữ", "nam", "phim", "năm"
     }
     words1 = {w for w in re.findall(r'[\w\d]+', title1.lower()) if w not in stop_words and len(w) > 1}
     words2 = {w for w in re.findall(r'[\w\d]+', title2.lower()) if w not in stop_words and len(w) > 1}
@@ -115,8 +117,8 @@ def is_title_duplicate(title1: str, title2: str, threshold: float = 0.40) -> boo
     inter = words1.intersection(words2)
     min_len = min(len(words1), len(words2))
     similarity = len(inter) / min_len if min_len > 0 else 0
-    # Nếu trùng từ 4 từ khóa đặc trưng trở lên HOẶC độ tương đồng >= 40% -> Đều là trùng lặp phim
-    return len(inter) >= 4 or similarity >= threshold
+    # Phải có độ tương đồng từ 45% trở lên VÀ trùng ít nhất 4 từ khóa cốt truyện mới là cùng 1 bộ phim
+    return similarity >= threshold and len(inter) >= 4
 
 def get_channel_latest_videos(channel_id: str, cfg: Dict[str, Any], max_results: int = 5) -> List[Dict[str, str]]:
     """
