@@ -53,7 +53,8 @@
     "ELNWY4YyvsI",
     "PxqNIL9kjLY",
     "UoqgKDqYCqA",
-    "fP3ueH75w5g"
+    "fP3ueH75w5g",
+    "uM-liSX3VYs"
   ],
   "history": {
     "e93_3WKmFHg": {
@@ -433,6 +434,13 @@
         "skipped": true,
         "reason": "Video dài 3h22m (quá giới hạn tối đa 3 tiếng)"
       }
+    },
+    "uM-liSX3VYs": {
+      "title": "Trọng sinh thoát khỏi gia đình máu lạnh, một mình nuôi con nuôi khôn lớn",
+      "youtube_uploaded": true,
+      "facebook_uploaded": true,
+      "processed_at": "2026-10-24T09:56:23.360567",
+      "extra": {}
     }
   }
 }
