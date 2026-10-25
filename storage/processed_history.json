@@ -62,7 +62,8 @@
     "tft9VbsY5g8",
     "FeqAle8Z2NE",
     "TJ1GJW8aNLI",
-    "e45aPw3UajM"
+    "e45aPw3UajM",
+    "dEfvCP-SEB4"
   ],
   "history": {
     "e93_3WKmFHg": {
@@ -514,6 +515,16 @@
       "facebook_uploaded": true,
       "processed_at": "2026-10-25T10:27:57.001400",
       "extra": {}
+    },
+    "dEfvCP-SEB4": {
+      "title": "Xuyên Không Bán Món Ăn Hiện Đại, Chàng Khiến Cả Hoàng Triều Xếp Hàng Chờ Thưởng Thức.",
+      "youtube_uploaded": false,
+      "facebook_uploaded": false,
+      "processed_at": "2026-10-25T12:02:07.931505",
+      "extra": {
+        "skipped": true,
+        "reason": "Video dài 3h29m (quá giới hạn tối đa 3 tiếng)"
+      }
     }
   }
 }
