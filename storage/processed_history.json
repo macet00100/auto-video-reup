@@ -59,7 +59,8 @@
     "wGmW-Netoqk",
     "k2UEFGFIqmg",
     "orHgaWe_9-M",
-    "tft9VbsY5g8"
+    "tft9VbsY5g8",
+    "FeqAle8Z2NE"
   ],
   "history": {
     "e93_3WKmFHg": {
@@ -486,6 +487,16 @@
       "extra": {
         "skipped": true,
         "reason": "Video dài 3h53m (quá giới hạn tối đa 3 tiếng)"
+      }
+    },
+    "FeqAle8Z2NE": {
+      "title": "Xuyên Không Làm Tiểu Nhị Quán Trọ, Nào Ngờ Đâu Chàng Chính Là Đế Sư Của Tân Hoàng.",
+      "youtube_uploaded": false,
+      "facebook_uploaded": false,
+      "processed_at": "2026-10-25T02:16:57.741073",
+      "extra": {
+        "skipped": true,
+        "reason": "Video dài 3h22m (quá giới hạn tối đa 3 tiếng)"
       }
     }
   }
