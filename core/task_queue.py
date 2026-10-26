@@ -280,14 +280,6 @@ class TaskQueue:
                 if not upload_res.get("success"):
                     raise Exception(f"Lỗi khi upload lên {platform}: {upload_res.get('message')}")
 
-                # Tự động comment lần đầu tăng tương tác
-                vid_id = upload_res.get("video_id")
-                if vid_id:
-                    if platform == "youtube":
-                        YouTubeUploader.add_comment(vid_id, "Chúc cả nhà xem phim vui vẻ! Mọi người thấy phim hôm nay thế nào? Để lại bình luận cho mình biết nhé! ❤️", plat_cfg.get("destination", {}))
-                    elif platform == "facebook":
-                        FacebookUploader.add_comment(vid_id, "Chúc cả nhà xem phim vui vẻ! Mọi người thấy phim hôm nay thế nào ạ? Để lại cmt cho mình biết nhé! ❤️", plat_cfg.get("destination", {}))
-
                 # HOÀN THÀNH
                 self.update_task(
                     task_id,

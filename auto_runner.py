@@ -314,12 +314,7 @@ def run_headless_pipeline():
     # Dọn dẹp cache tổng thể sau khi hoàn tất
     clean_all_temp_cache()
 
-    # BƯỚC 7: TỰ ĐỘNG QUÉT & TRẢ LỜI BÌNH LUẬN (AUTO REPLY BOT DÙNG AI GEMINI)
-    try:
-        LogManager.log("Đang kiểm tra và tự động trả lời bình luận của khán giả qua AI (YouTube & Facebook)...", "INFO", "AUTO_REPLY")
-        AutoReplyBot.scan_and_reply_all(cfg)
-    except Exception as ex_rep:
-        LogManager.log(f"Lỗi khi chạy Auto Reply Bot: {ex_rep}", "WARNING", "AUTO_REPLY")
+    # (Đã tắt chức năng tự động tương tác và bình luận theo yêu cầu)
 
     LogManager.log("=== HOÀN TẤT CHU KỲ QUÉT & REUP ĐỒNG THỜI ===", "SUCCESS", "WORKER")
 
@@ -448,12 +443,6 @@ def process_and_upload_simultaneously(
                 if yt_success:
                     uploaded_yt_id = yt_res.get("video_id")
                     LogManager.log(f"[{task_id}] Upload YouTube thành công! Video ID: {uploaded_yt_id}", "SUCCESS", "YOUTUBE")
-                    if uploaded_yt_id:
-                        # 1. Tự động Like video vừa đăng tải
-                        YouTubeUploader.like_video(uploaded_yt_id, yt_cfg.get("destination", {}))
-                        # 2. Tự động comment lần đầu tăng tương tác
-                        yt_cmt = random.choice(YOUTUBE_COMMENTS)
-                        YouTubeUploader.add_comment(uploaded_yt_id, yt_cmt, yt_cfg.get("destination", {}))
                 else:
                     LogManager.log(f"[{task_id}] Upload YouTube không thành công: {yt_res}", "WARNING", "YOUTUBE")
             except Exception as e:
@@ -480,9 +469,6 @@ def process_and_upload_simultaneously(
                 if fb_success:
                     uploaded_fb_id = fb_res.get("video_id")
                     LogManager.log(f"[{task_id}] Upload Facebook thành công! Video ID: {uploaded_fb_id}", "SUCCESS", "FACEBOOK")
-                    if uploaded_fb_id:
-                        fb_cmt = random.choice(FACEBOOK_COMMENTS)
-                        FacebookUploader.add_comment(uploaded_fb_id, fb_cmt, fb_cfg.get("destination", {}))
                 else:
                     LogManager.log(f"[{task_id}] Upload Facebook không thành công: {fb_res}", "WARNING", "FACEBOOK")
             except Exception as e:

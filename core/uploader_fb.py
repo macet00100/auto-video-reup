@@ -129,9 +129,6 @@ class FacebookUploader:
                 if thumbnail_path and os.path.exists(thumbnail_path):
                     FacebookUploader.set_thumbnail(final_video_id, thumbnail_path, config)
 
-                # BƯỚC 5: TỰ ĐỘNG THÍCH (LIKE) VIDEO VỪA ĐĂNG
-                FacebookUploader.like_video(final_video_id, config)
-
                 return {
                     "success": True,
                     "video_id": final_video_id,

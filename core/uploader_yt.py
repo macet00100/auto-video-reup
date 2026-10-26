@@ -134,10 +134,6 @@ class YouTubeUploader:
             if thumbnail_path and os.path.exists(thumbnail_path) and new_video_id:
                 YouTubeUploader.set_thumbnail(new_video_id, thumbnail_path, config)
 
-            # 2. Tự động Like video vừa đăng tải
-            if new_video_id:
-                YouTubeUploader.like_video(new_video_id, config)
-
             return {
                 "success": True,
                 "video_id": new_video_id,

@@ -207,16 +207,12 @@ def run_simultaneous_reup():
             yt_id = yt_res.get('video_id')
             yt_link = f"https://www.youtube.com/watch?v={yt_id}"
             LogManager.log(f"✅ YOUTUBE THÀNH CÔNG: {yt_link}", "SUCCESS", "YOUTUBE")
-            if yt_id:
-                YouTubeUploader.add_comment(yt_id, "Chúc cả nhà xem phim vui vẻ! Mọi người thấy phim hôm nay thế nào? Để lại bình luận cho mình biết nhé! ❤️", yt_cfg.get("destination", {}))
         else:
             LogManager.log(f"❌ YOUTUBE THẤT BẠI: {yt_res.get('error')}", "ERROR", "YOUTUBE")
 
         if fb_res.get("success"):
             fb_id = fb_res.get('video_id')
             LogManager.log(f"✅ FACEBOOK THÀNH CÔNG: Post ID = {fb_id}", "SUCCESS", "FACEBOOK")
-            if fb_id:
-                FacebookUploader.add_comment(fb_id, "Chúc cả nhà xem phim vui vẻ! Mọi người thấy phim hôm nay thế nào ạ? Để lại cmt cho mình biết nhé! ❤️", fb_cfg.get("destination", {}))
         else:
             LogManager.log(f"❌ FACEBOOK THẤT BẠI: {fb_res.get('error')}", "ERROR", "FACEBOOK")
         LogManager.log("==================================================================", "SUCCESS", "WORKER")
