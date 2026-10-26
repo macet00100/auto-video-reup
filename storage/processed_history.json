@@ -75,7 +75,8 @@
     "7wD8gUA9AVo",
     "zRz9qz45CNE",
     "9v6net502Rc",
-    "speZbGLocVo"
+    "speZbGLocVo",
+    "GKGiv4AyWRI"
   ],
   "history": {
     "e93_3WKmFHg": {
@@ -627,6 +628,16 @@
       "facebook_uploaded": true,
       "processed_at": "2026-10-26T13:22:18.877688",
       "extra": {}
+    },
+    "GKGiv4AyWRI": {
+      "title": "Xuyên Từ Tận Thế Về 1973, Cô Bị Bạn Thân Tráo Dâu, Ai Ngờ Chồng Quyết Không Bỏ, Còn Cưng Cô Hết Mực!",
+      "youtube_uploaded": false,
+      "facebook_uploaded": false,
+      "processed_at": "2026-10-26T14:48:58.644435",
+      "extra": {
+        "skipped": true,
+        "reason": "Video dài 3h2m (quá giới hạn tối đa 3 tiếng)"
+      }
     }
   }
 }
