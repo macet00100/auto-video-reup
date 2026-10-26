@@ -67,7 +67,8 @@
     "eDVA5MIIvKM",
     "Xbkxisrd6v4",
     "vNwMdtQyn6o",
-    "ftSlekbfXjY"
+    "ftSlekbfXjY",
+    "XELo527ptTs"
   ],
   "history": {
     "e93_3WKmFHg": {
@@ -557,6 +558,16 @@
       "facebook_uploaded": true,
       "processed_at": "2026-10-26T05:00:51.538918",
       "extra": {}
+    },
+    "XELo527ptTs": {
+      "title": "Xuyên Không Nhận 3 Tội Thê, Chàng Dùng Hỏa Khí Tối Tân Nghịch Thiên Đổi Mệnh.",
+      "youtube_uploaded": false,
+      "facebook_uploaded": false,
+      "processed_at": "2026-10-26T05:00:55.380541",
+      "extra": {
+        "skipped": true,
+        "reason": "Video dài 3h26m (quá giới hạn tối đa 3 tiếng)"
+      }
     }
   }
 }
