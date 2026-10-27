@@ -76,7 +76,8 @@
     "zRz9qz45CNE",
     "9v6net502Rc",
     "speZbGLocVo",
-    "GKGiv4AyWRI"
+    "GKGiv4AyWRI",
+    "4PcPu7W_NL4"
   ],
   "history": {
     "e93_3WKmFHg": {
@@ -637,6 +638,16 @@
       "extra": {
         "skipped": true,
         "reason": "Video dài 3h2m (quá giới hạn tối đa 3 tiếng)"
+      }
+    },
+    "4PcPu7W_NL4": {
+      "title": "Xuyên Vào Sách Thành Cô Gái Nhà Nghèo, Bị Cả Làng Chê Điên, Ai Ngờ Cô Lại Giúp Cả Làng Làm Giàu!",
+      "youtube_uploaded": false,
+      "facebook_uploaded": false,
+      "processed_at": "2026-10-27T01:05:20.734079",
+      "extra": {
+        "skipped": true,
+        "reason": "Video dài 3h9m (quá giới hạn tối đa 3 tiếng)"
       }
     }
   }
