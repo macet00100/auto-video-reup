@@ -21,13 +21,6 @@
                 "url": "https://www.youtube.com/@daicarecap79",
                 "last_video_id": "oTZRuQ2lWBg",
                 "enabled": true
-            },
-            {
-                "id": "UCl425MQ0hfSzigttaqGLXBw",
-                "name": "Tây Vương Mẫu Review",
-                "url": "https://www.youtube.com/@tayvuongmaureview",
-                "last_video_id": "DjBVn78AZY0",
-                "enabled": true
             }
         ],
         "destination": {
@@ -69,13 +62,6 @@
                 "name": "Daica Review",
                 "url": "https://www.youtube.com/@daicarecap79",
                 "last_video_id": "oTZRuQ2lWBg",
-                "enabled": true
-            },
-            {
-                "id": "UCl425MQ0hfSzigttaqGLXBw",
-                "name": "Tây Vương Mẫu Review",
-                "url": "https://www.youtube.com/@tayvuongmaureview",
-                "last_video_id": "DjBVn78AZY0",
                 "enabled": true
             }
         ],
