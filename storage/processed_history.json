@@ -87,7 +87,8 @@
     "bCknEjjPZ6E",
     "SQZlIiV7ZaA",
     "uWpdf9jMZeQ",
-    "wcKVZ8RgZPk"
+    "wcKVZ8RgZPk",
+    "wlxLp55YDWI"
   ],
   "history": {
     "e93_3WKmFHg": {
@@ -732,6 +733,16 @@
       "facebook_uploaded": true,
       "processed_at": "2026-10-28T01:37:57.383155",
       "extra": {}
+    },
+    "wlxLp55YDWI": {
+      "title": "Xuyên Về Năm 1983, Bị Ép Vào Cuộc Hôn Nhân Bất Hạnh, Ai Ngờ Chồng Cưng Chiều, Cùng Cô Đổi Đời!",
+      "youtube_uploaded": false,
+      "facebook_uploaded": false,
+      "processed_at": "2026-10-28T02:32:14.505807",
+      "extra": {
+        "skipped": true,
+        "reason": "Video dài 3h57m (quá giới hạn tối đa 3 tiếng)"
+      }
     }
   }
 }
