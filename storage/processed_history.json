@@ -98,7 +98,8 @@
     "Y4phYU8TOjQ",
     "Tjo9oEYV40I",
     "JA_-zNGHyKo",
-    "-mALEmj5pM0"
+    "-mALEmj5pM0",
+    "GnpmgyAkCko"
   ],
   "history": {
     "e93_3WKmFHg": {
@@ -829,6 +830,16 @@
       "facebook_uploaded": true,
       "processed_at": "2026-10-29T10:33:32.449024",
       "extra": {}
+    },
+    "GnpmgyAkCko": {
+      "title": "Nhà Gái Khinh Mẹ Chồng Bán Rong Nghèo Hèn, Ai Ngờ Bà Là Chủ Tịch Tập Đoàn Gia Đình Họ Đang Nhờ Cậy!",
+      "youtube_uploaded": false,
+      "facebook_uploaded": false,
+      "processed_at": "2026-10-29T11:03:10.042259",
+      "extra": {
+        "skipped": true,
+        "reason": "Video dài 3h16m (quá giới hạn tối đa 3 tiếng)"
+      }
     }
   }
 }
