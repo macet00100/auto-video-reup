@@ -97,7 +97,8 @@
     "Xl5HwoSNruQ",
     "Y4phYU8TOjQ",
     "Tjo9oEYV40I",
-    "JA_-zNGHyKo"
+    "JA_-zNGHyKo",
+    "-mALEmj5pM0"
   ],
   "history": {
     "e93_3WKmFHg": {
@@ -821,6 +822,13 @@
         "skipped": true,
         "reason": "Video dài 3h27m (quá giới hạn tối đa 3 tiếng)"
       }
+    },
+    "-mALEmj5pM0": {
+      "title": "Cả Đời Hy Sinh Vì Con Cháu Vẫn Bị Xem Nhẹ, Tưởng Bà Nhịn Mãi, Ai Ngờ Bà Bán Nhà Để Chúng Tự Lo!",
+      "youtube_uploaded": true,
+      "facebook_uploaded": true,
+      "processed_at": "2026-10-29T10:33:32.449024",
+      "extra": {}
     }
   }
 }
