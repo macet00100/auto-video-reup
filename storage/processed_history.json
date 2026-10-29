@@ -95,7 +95,8 @@
     "LbtCD7TiH5M",
     "DcG_2CBpRnE",
     "Xl5HwoSNruQ",
-    "Y4phYU8TOjQ"
+    "Y4phYU8TOjQ",
+    "Tjo9oEYV40I"
   ],
   "history": {
     "e93_3WKmFHg": {
@@ -799,6 +800,16 @@
       "facebook_uploaded": true,
       "processed_at": "2026-10-29T02:33:46.652274",
       "extra": {}
+    },
+    "Tjo9oEYV40I": {
+      "title": "Nghèo Khó 18 Năm Mới Biết Là Con Nhà Giàu, Tưởng Cô Sẽ Đi Ngay, Ai Ngờ Không Nỡ Rời Cha Mẹ Nuôi!",
+      "youtube_uploaded": false,
+      "facebook_uploaded": false,
+      "processed_at": "2026-10-29T03:16:55.009019",
+      "extra": {
+        "skipped": true,
+        "reason": "Video dài 3h30m (quá giới hạn tối đa 3 tiếng)"
+      }
     }
   }
 }
