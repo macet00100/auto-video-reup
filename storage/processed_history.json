@@ -107,7 +107,8 @@
     "oOpxG76cU9U",
     "orHHwyI0rwI",
     "eP6Wj6GtWmk",
-    "R6rXXND21O4"
+    "R6rXXND21O4",
+    "c86lkQB372I"
   ],
   "history": {
     "e93_3WKmFHg": {
@@ -907,6 +908,16 @@
       "facebook_uploaded": true,
       "processed_at": "2026-10-30T10:47:09.078531",
       "extra": {}
+    },
+    "c86lkQB372I": {
+      "title": "Kiếp Trước Níu Kéo Người Đã Quên Mình, Sống Lại Cô Buông Tay, Ai Ngờ Gặp Người Thầm Yêu Cô Từ Lâu!",
+      "youtube_uploaded": false,
+      "facebook_uploaded": false,
+      "processed_at": "2026-10-30T12:32:54.894843",
+      "extra": {
+        "skipped": true,
+        "reason": "Video dài 3h13m (quá giới hạn tối đa 3 tiếng)"
+      }
     }
   }
 }
