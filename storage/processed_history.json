@@ -129,7 +129,8 @@
     "fkdQ-QkYr6E",
     "E1oULKvp-u4",
     "KO1OsitZHOU",
-    "gvovvzdU-nY"
+    "gvovvzdU-nY",
+    "LPuTk_JopO4"
   ],
   "history": {
     "e93_3WKmFHg": {
@@ -1089,6 +1090,16 @@
       "facebook_uploaded": true,
       "processed_at": "2026-11-03T01:41:07.552171",
       "extra": {}
+    },
+    "LPuTk_JopO4": {
+      "title": "Xuyên Vào Truyện Thành Nữ Phụ Chết Thảm, Cô Nhanh Tay Mở Không Gian, Giành Cơ Duyên Đổi Số Phận!",
+      "youtube_uploaded": false,
+      "facebook_uploaded": false,
+      "processed_at": "2026-11-03T05:16:36.043678",
+      "extra": {
+        "skipped": true,
+        "reason": "Video dài 3h0m (quá giới hạn tối đa 3 tiếng)"
+      }
     }
   }
 }
