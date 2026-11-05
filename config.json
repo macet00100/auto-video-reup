@@ -16,10 +16,10 @@
         "max_duration_minutes": 180,
         "sources": [
             {
-                "id": "UCEtZg3fpene5M1ZyIpxkBSQ",
-                "name": "Daica Review",
-                "url": "https://www.youtube.com/@daicarecap79",
-                "last_video_id": "oTZRuQ2lWBg",
+                "id": "UCl425MQ0hfSzigttaqGLXBw",
+                "name": "Tây Vương Mẫu Review",
+                "url": "https://www.youtube.com/@tayvuongmaureview",
+                "last_video_id": "",
                 "enabled": true
             }
         ],
@@ -58,10 +58,10 @@
         "max_duration_minutes": 180,
         "sources": [
             {
-                "id": "UCEtZg3fpene5M1ZyIpxkBSQ",
-                "name": "Daica Review",
-                "url": "https://www.youtube.com/@daicarecap79",
-                "last_video_id": "oTZRuQ2lWBg",
+                "id": "UCl425MQ0hfSzigttaqGLXBw",
+                "name": "Tây Vương Mẫu Review",
+                "url": "https://www.youtube.com/@tayvuongmaureview",
+                "last_video_id": "",
                 "enabled": true
             }
         ],
