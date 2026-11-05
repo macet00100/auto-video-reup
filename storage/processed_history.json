@@ -152,7 +152,8 @@
     "UpsaNmej9yQ",
     "2_P8QyYGhmQ",
     "FcC_XcSdLLg",
-    "BdgM7AVT-8w"
+    "BdgM7AVT-8w",
+    "_lUvUhkh7J0"
   ],
   "history": {
     "e93_3WKmFHg": {
@@ -1279,6 +1280,16 @@
       "facebook_uploaded": true,
       "processed_at": "2026-11-05T14:15:28.753148",
       "extra": {}
+    },
+    "_lUvUhkh7J0": {
+      "title": "Xuyên Không Thành Tử Tù Chờ Trảm, Bác Sĩ Dùng Y Thuật Hiện Đại Cứu Sống Cả Hoàng Tộc.",
+      "youtube_uploaded": false,
+      "facebook_uploaded": false,
+      "processed_at": "2026-11-05T14:16:43.082027",
+      "extra": {
+        "skipped": true,
+        "reason": "Video dài 3h5m (quá giới hạn tối đa 3 tiếng)"
+      }
     }
   }
 }
