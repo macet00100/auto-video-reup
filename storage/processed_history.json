@@ -153,7 +153,8 @@
     "2_P8QyYGhmQ",
     "FcC_XcSdLLg",
     "BdgM7AVT-8w",
-    "_lUvUhkh7J0"
+    "_lUvUhkh7J0",
+    "aNTm8JQEoyg"
   ],
   "history": {
     "e93_3WKmFHg": {
@@ -1290,6 +1291,13 @@
         "skipped": true,
         "reason": "Video dài 3h5m (quá giới hạn tối đa 3 tiếng)"
       }
+    },
+    "aNTm8JQEoyg": {
+      "title": "Xuyên Không Mang Theo Cả Kho Tàng Thơ Văn, Chàng Đọc 3 Bài Thơ Đè Bẹp Văn Nhân Cả Nước",
+      "youtube_uploaded": true,
+      "facebook_uploaded": true,
+      "processed_at": "2026-11-06T02:23:55.063565",
+      "extra": {}
     }
   }
 }
