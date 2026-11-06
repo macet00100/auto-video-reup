@@ -156,7 +156,8 @@
     "_lUvUhkh7J0",
     "aNTm8JQEoyg",
     "6xwru9w_Czw",
-    "NZTHpIr9SEQ"
+    "NZTHpIr9SEQ",
+    "gyP4n8A5tgc"
   ],
   "history": {
     "e93_3WKmFHg": {
@@ -1314,6 +1315,16 @@
       "facebook_uploaded": true,
       "processed_at": "2026-11-06T10:30:00.168263",
       "extra": {}
+    },
+    "gyP4n8A5tgc": {
+      "title": "Xuyên Không Thành Phế Vật Cơ Bắp, Chàng Xuất Thần Thi Ép Bại Quan Lại Triều Đình.",
+      "youtube_uploaded": false,
+      "facebook_uploaded": false,
+      "processed_at": "2026-11-06T12:16:38.231624",
+      "extra": {
+        "skipped": true,
+        "reason": "Video dài 5h23m (quá giới hạn tối đa 3 tiếng)"
+      }
     }
   }
 }
