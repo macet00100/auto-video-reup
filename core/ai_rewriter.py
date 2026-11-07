@@ -80,16 +80,19 @@ class AIRewriter:
         for p in junk_patterns:
             t = re.sub(p, '', t, flags=re.IGNORECASE).strip()
 
-        # Phát hiện phần phim: P3, P4, P5, P.3, P 3, Phần 3, Tập 3, Part 3...
+        # Phát hiện phần phim: P3, P4, P5, P.3, P 3, Phần 3, Tập 3, Part 3, (P4), [P4]...
         part_num = None
-        m = re.search(r'\b(?:P|Phần|Tập|Part)\.?\s*(\d+)\b', t, flags=re.IGNORECASE)
+        m = re.search(r'[\(\[]?\s*(?:P|Phần|Tập|Part)\.?\s*(\d+)\s*[\)\]]?', t, flags=re.IGNORECASE)
         if m:
             part_num = m.group(1)
-            t = re.sub(r'\b(?:P|Phần|Tập|Part)\.?\s*' + part_num + r'\b[\s:\-\.]*', '', t, flags=re.IGNORECASE).strip()
+            t = re.sub(r'[\(\[]?\s*(?:P|Phần|Tập|Part)\.?\s*' + part_num + r'\s*[\)\]]?[\s:\-\.]*', '', t, flags=re.IGNORECASE).strip()
+
+        # Dọn sạch các cặp ngoặc rỗng nếu còn sót
+        t = re.sub(r'[\(\[]\s*[\)\]]', '', t).strip()
 
         # Làm sạch ký tự phân cách ở đầu và đuôi
-        t = re.sub(r'^[\s:\-\.\,\|]+', '', t).strip()
-        t = re.sub(r'[\s:\-\.\,\|]+$', '', t).strip()
+        t = re.sub(r'^[\s:\-\.\,\|\[\]\(\)]+', '', t).strip()
+        t = re.sub(r'[\s:\-\.\,\|\[\]\(\)]+$', '', t).strip()
 
         return part_num, t
 

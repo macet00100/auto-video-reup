@@ -5,6 +5,11 @@ on:
     # Tự động quét mỗi 15 phút một lần trên Cloud 24/24 (Miễn phí vô hạn khi Repo ở chế độ Public)
     - cron: '*/15 * * * *'
   workflow_dispatch: # Cho phép bấm nút "Run workflow" để quét và reup thủ công bất cứ lúc nào
+    inputs:
+      video_url:
+        description: 'URL video YouTube cần xử lý và đăng ngay (để trống nếu muốn quét tự động)'
+        required: false
+        default: ''
 
 concurrency:
   group: auto-reup-lock
@@ -16,7 +21,7 @@ permissions:
 jobs:
   run-auto-reup:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 360
     steps:
       - name: 📥 Tải mã nguồn dự án
         uses: actions/checkout@v4
@@ -61,6 +66,7 @@ jobs:
           YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
           FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
           FB_ACCESS_TOKEN: ${{ secrets.FB_ACCESS_TOKEN }}
+          TARGET_VIDEO_URL: ${{ inputs.video_url || github.event.inputs.video_url || '' }}
         run: |
           python -u auto_runner.py
 

@@ -324,7 +324,8 @@ def process_and_upload_simultaneously(
     orig_title: str,
     upload_to_yt: bool,
     upload_to_fb: bool,
-    cfg: Dict[str, Any]
+    cfg: Dict[str, Any],
+    bypass_duration_check: bool = False
 ) -> bool:
     task_id = f"auto_{int(time.time())}"
     LogManager.log(f"Bắt đầu chu trình xử lý siêu tốc ID [{task_id}] từ {source_url}", "INFO", "WORKER")
@@ -333,9 +334,9 @@ def process_and_upload_simultaneously(
     yt_cfg = cfg.get("youtube", {})
     fb_cfg = cfg.get("facebook", {})
 
-    # BƯỚC 1: TẢI VIDEO 1 LẦN DUY NHẤT (Có bộ lọc 30 phút - 3 tiếng)
-    min_mins = general_cfg.get("min_duration_minutes", 30)
-    max_mins = general_cfg.get("max_duration_minutes", 180)
+    # BƯỚC 1: TẢI VIDEO 1 LẦN DUY NHẤT (Có bộ lọc 30 phút - 3 tiếng, trừ khi được chỉ định chạy thủ công)
+    min_mins = 0 if bypass_duration_check else general_cfg.get("min_duration_minutes", 30)
+    max_mins = 600 if bypass_duration_check else general_cfg.get("max_duration_minutes", 180)
     min_secs = int(min_mins * 60)
     max_secs = int(max_mins * 60)
 
@@ -405,7 +406,7 @@ def process_and_upload_simultaneously(
             "color_boost": True,
             "change_fps": True,
             "target_resolution": "720p",
-            "preset": "veryfast"
+            "preset": "superfast" if bypass_duration_check else "veryfast"
         }
 
         processed_video = VideoProcessor.process(
@@ -495,5 +496,62 @@ def process_and_upload_simultaneously(
             try: os.remove(processed_video_expected)
             except Exception: pass
 
+def process_single_video_url(target_url: str) -> bool:
+    """
+    Quy trình xử lý và đăng ngay một video cụ thể theo URL chỉ định:
+    1. Trích xuất video_id và tiêu đề từ URL.
+    2. Bỏ qua giới hạn thời lượng 3 tiếng (hỗ trợ phim dài tới 10 tiếng).
+    3. Tải 1 lần -> Render lách bản quyền -> Đăng lên YouTube & Facebook -> Lưu lịch sử.
+    """
+    LogManager.log(f"=== BẮT ĐẦU XỬ LÝ VIDEO CHỈ ĐỊNH: {target_url} ===", "INFO", "WORKER")
+    cfg = ConfigManager.load()
+    yt_cfg = cfg.get("youtube", {})
+    fb_cfg = cfg.get("facebook", {})
+
+    # Trích xuất video_id
+    video_id = None
+    m = re.search(r'(?:v=|/embed/|/watch\?v=|youtu\.be/|/v/)([a-zA-Z0-9_-]{11})', target_url)
+    if m:
+        video_id = m.group(1)
+    else:
+        video_id = target_url.strip()
+
+    orig_title = "Video Chỉ Định"
+    try:
+        import yt_dlp
+        with yt_dlp.YoutubeDL({'quiet': True, 'noplaylist': True}) as ydl:
+            info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
+            orig_title = info.get("title", orig_title)
+            video_id = info.get("id", video_id)
+    except Exception as e:
+        LogManager.log(f"Không thể lấy metadata video: {e}", "WARNING", "WORKER")
+
+    LogManager.log(f"Video mục tiêu: [{orig_title}] (ID: {video_id})", "INFO", "WORKER")
+    success = process_and_upload_simultaneously(
+        video_id=video_id,
+        source_url=f"https://www.youtube.com/watch?v={video_id}",
+        orig_title=orig_title,
+        upload_to_yt=yt_cfg.get("enabled", True),
+        upload_to_fb=fb_cfg.get("enabled", True),
+        cfg=cfg,
+        bypass_duration_check=True
+    )
+    clean_all_temp_cache()
+    LogManager.log(f"=== HOÀN TẤT XỬ LÝ VIDEO CHỈ ĐỊNH (Thành công: {success}) ===", "SUCCESS" if success else "ERROR", "WORKER")
+    return success
+
 if __name__ == "__main__":
-    run_headless_pipeline()
+    target_url = os.environ.get("TARGET_VIDEO_URL", "").strip()
+    if not target_url and len(sys.argv) > 1:
+        for i, arg in enumerate(sys.argv[1:]):
+            if arg in ["--url", "--video-url", "-u"] and (i + 1) < len(sys.argv) - 1:
+                target_url = sys.argv[i + 2].strip()
+                break
+            elif "youtube.com" in arg or "youtu.be" in arg:
+                target_url = arg.strip()
+                break
+
+    if target_url:
+        process_single_video_url(target_url)
+    else:
+        run_headless_pipeline()
