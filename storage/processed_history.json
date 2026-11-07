@@ -157,7 +157,8 @@
     "aNTm8JQEoyg",
     "6xwru9w_Czw",
     "NZTHpIr9SEQ",
-    "gyP4n8A5tgc"
+    "gyP4n8A5tgc",
+    "JelyqLb04KM"
   ],
   "history": {
     "e93_3WKmFHg": {
@@ -1325,6 +1326,13 @@
         "skipped": true,
         "reason": "Video dài 5h23m (quá giới hạn tối đa 3 tiếng)"
       }
+    },
+    "JelyqLb04KM": {
+      "title": "Xuyên Không Thành Hoàng Đế Bệnh Tật, Chàng Dùng Hệ Thống Chế Đại Bác Diệt Gian Thần",
+      "youtube_uploaded": true,
+      "facebook_uploaded": true,
+      "processed_at": "2026-11-07T02:29:12.790766",
+      "extra": {}
     }
   }
 }
