@@ -160,7 +160,8 @@
     "gyP4n8A5tgc",
     "JelyqLb04KM",
     "tJVzmoOwYz4",
-    "dsq-x2SmYK8"
+    "dsq-x2SmYK8",
+    "15FZBOPb2Gs"
   ],
   "history": {
     "e93_3WKmFHg": {
@@ -1349,6 +1350,16 @@
       "facebook_uploaded": true,
       "processed_at": "2026-11-07T10:28:10.848509",
       "extra": {}
+    },
+    "15FZBOPb2Gs": {
+      "title": "Bị Nữ Đế Đày Ra Biên Ải, Chàng Thức Tỉnh Hệ Thống Thần Tướng Diệt Sạch Hoàng Triều Trả Thù.",
+      "youtube_uploaded": false,
+      "facebook_uploaded": false,
+      "processed_at": "2026-11-07T12:02:21.502651",
+      "extra": {
+        "skipped": true,
+        "reason": "Video dài 4h14m (quá giới hạn tối đa 3 tiếng)"
+      }
     }
   }
 }
