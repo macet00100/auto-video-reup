@@ -161,7 +161,8 @@
     "JelyqLb04KM",
     "tJVzmoOwYz4",
     "dsq-x2SmYK8",
-    "15FZBOPb2Gs"
+    "15FZBOPb2Gs",
+    "bMbfhQG2zD0"
   ],
   "history": {
     "e93_3WKmFHg": {
@@ -1360,6 +1361,13 @@
         "skipped": true,
         "reason": "Video dài 4h14m (quá giới hạn tối đa 3 tiếng)"
       }
+    },
+    "bMbfhQG2zD0": {
+      "title": "Phần 4 - Kỹ Sư Cơ Khí Xuyên Không, Dùng Vũ Khí Hiện Đại Diệt Sạch 2 Vạn Quân Địch Chấn Động",
+      "youtube_uploaded": true,
+      "facebook_uploaded": true,
+      "processed_at": "2026-11-07T14:17:49.560794",
+      "extra": {}
     }
   }
 }
