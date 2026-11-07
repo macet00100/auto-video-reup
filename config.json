@@ -6,19 +6,19 @@
         "scheduler_interval_minutes": 15,
         "max_concurrent_tasks": 1,
         "min_duration_minutes": 30,
-        "max_duration_minutes": 180,
+        "max_duration_minutes": 360,
         "clean_temp_after_upload": true,
         "proxy": ""
     },
     "youtube": {
         "enabled": true,
         "min_duration_minutes": 30,
-        "max_duration_minutes": 180,
+        "max_duration_minutes": 360,
         "sources": [
             {
-                "id": "UCl425MQ0hfSzigttaqGLXBw",
-                "name": "Tây Vương Mẫu Review",
-                "url": "https://www.youtube.com/@tayvuongmaureview",
+                "id": "UCfF2CT8ixxPXGV-O9KfrZQg",
+                "name": "Lâm Anh Review",
+                "url": "https://www.youtube.com/@LâmAnhReview",
                 "last_video_id": "",
                 "enabled": true
             }
@@ -55,12 +55,12 @@
     "facebook": {
         "enabled": true,
         "min_duration_minutes": 30,
-        "max_duration_minutes": 180,
+        "max_duration_minutes": 360,
         "sources": [
             {
-                "id": "UCl425MQ0hfSzigttaqGLXBw",
-                "name": "Tây Vương Mẫu Review",
-                "url": "https://www.youtube.com/@tayvuongmaureview",
+                "id": "UCfF2CT8ixxPXGV-O9KfrZQg",
+                "name": "Lâm Anh Review",
+                "url": "https://www.youtube.com/@LâmAnhReview",
                 "last_video_id": "",
                 "enabled": true
             }
