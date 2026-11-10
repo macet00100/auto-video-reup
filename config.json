@@ -6,19 +6,19 @@
         "scheduler_interval_minutes": 15,
         "max_concurrent_tasks": 1,
         "min_duration_minutes": 30,
-        "max_duration_minutes": 360,
+        "max_duration_minutes": 180,
         "clean_temp_after_upload": true,
         "proxy": ""
     },
     "youtube": {
         "enabled": true,
         "min_duration_minutes": 30,
-        "max_duration_minutes": 360,
+        "max_duration_minutes": 180,
         "sources": [
             {
-                "id": "UCfF2CT8ixxPXGV-O9KfrZQg",
-                "name": "Lâm Anh Review",
-                "url": "https://www.youtube.com/@LâmAnhReview",
+                "id": "UCm40GwiXpOrc3hjUZeh1m2A",
+                "name": "CCAP Say Hi",
+                "url": "https://www.youtube.com/channel/UCm40GwiXpOrc3hjUZeh1m2A",
                 "last_video_id": "",
                 "enabled": true
             }
@@ -55,12 +55,12 @@
     "facebook": {
         "enabled": true,
         "min_duration_minutes": 30,
-        "max_duration_minutes": 360,
+        "max_duration_minutes": 180,
         "sources": [
             {
-                "id": "UCfF2CT8ixxPXGV-O9KfrZQg",
-                "name": "Lâm Anh Review",
-                "url": "https://www.youtube.com/@LâmAnhReview",
+                "id": "UCm40GwiXpOrc3hjUZeh1m2A",
+                "name": "CCAP Say Hi",
+                "url": "https://www.youtube.com/channel/UCm40GwiXpOrc3hjUZeh1m2A",
                 "last_video_id": "",
                 "enabled": true
             }

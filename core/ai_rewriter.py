@@ -248,6 +248,12 @@ class AIRewriter:
             tags.extend(["phim tổng tài", "tổng tài", "chủ tịch giả nghèo", "tổng tài bá đạo"])
         if any(k in title_lower for k in ["phu nhân", "tiểu thư", "hào môn", "thiếu gia"]):
             tags.extend(["hào môn thế gia", "phim hào môn", "phu nhân"])
+        if any(k in title_lower for k in ["mẹ chồng", "con dâu", "mẹ kế", "nhà chồng", "bà cụ"]):
+            tags.extend(["mẹ chồng nàng dâu", "phim mẹ chồng nàng dâu", "con dâu", "mẹ chồng ác độc", "mẹ kế"])
+        if any(k in title_lower for k in ["tiểu tam", "ly hôn", "ngoại tình", "tra nam", "phản bội", "bắt quả tang"]):
+            tags.extend(["đánh ghen", "tiểu tam", "trừng trị tiểu tam", "ly hôn", "ngoại tình"])
+        if any(k in title_lower for k in ["vả mặt", "dằn mặt", "lộ thân phận", "thân bại danh liệt", "thiên kim"]):
+            tags.extend(["vả mặt", "lộ thân phận", "thiên kim tài phiệt", "phim sảng"])
         if any(k in title_lower for k in ["gia đình", "mẹ", "cha", "con gái", "con trai", "nhà", "nhà nghèo"]):
             tags.extend(["phim gia đình", "tâm lý tình cảm", "phim cảm động"])
         if any(k in title_lower for k in ["báo thù", "trả thù", "đòi lại", "tính sổ"]):
