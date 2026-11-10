@@ -176,7 +176,8 @@
     "OUPhhJq0th0",
     "IOMoTlXTK4E",
     "2YhALXSxm5g",
-    "__cx7MhCSMM"
+    "__cx7MhCSMM",
+    "A10bQGgsVUc"
   ],
   "history": {
     "e93_3WKmFHg": {
@@ -1480,6 +1481,16 @@
       "facebook_uploaded": true,
       "processed_at": "2026-11-10T00:24:45.672387",
       "extra": {}
+    },
+    "A10bQGgsVUc": {
+      "title": "(P1) Xuyên Không Thành Thế Tử Bị Phế Truất, Lên Núi Tập Hợp 800.000 Hảo Hán Phản Công Lại Triều Đình",
+      "youtube_uploaded": false,
+      "facebook_uploaded": false,
+      "processed_at": "2026-11-10T02:21:40.785818",
+      "extra": {
+        "skipped": true,
+        "reason": "Video dài 7h17m (quá giới hạn tối đa 6 tiếng)"
+      }
     }
   }
 }
