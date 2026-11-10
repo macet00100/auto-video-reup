@@ -9,7 +9,7 @@
         "max_duration_minutes": 180,
         "clean_temp_after_upload": true,
         "proxy": "",
-        "max_daily_uploads": 2
+        "max_daily_uploads": 1
     },
     "youtube": {
         "enabled": true,
@@ -17,9 +17,9 @@
         "max_duration_minutes": 180,
         "sources": [
             {
-                "id": "UCm40GwiXpOrc3hjUZeh1m2A",
-                "name": "CCAP Say Hi",
-                "url": "https://www.youtube.com/channel/UCm40GwiXpOrc3hjUZeh1m2A",
+                "id": "UCjJrHnMQxk7_gruGTx1D0Rw",
+                "name": "Lạc Đà Review",
+                "url": "https://www.youtube.com/channel/UCjJrHnMQxk7_gruGTx1D0Rw",
                 "last_video_id": "",
                 "enabled": true
             }
@@ -59,9 +59,9 @@
         "max_duration_minutes": 180,
         "sources": [
             {
-                "id": "UCm40GwiXpOrc3hjUZeh1m2A",
-                "name": "CCAP Say Hi",
-                "url": "https://www.youtube.com/channel/UCm40GwiXpOrc3hjUZeh1m2A",
+                "id": "UCjJrHnMQxk7_gruGTx1D0Rw",
+                "name": "Lạc Đà Review",
+                "url": "https://www.youtube.com/channel/UCjJrHnMQxk7_gruGTx1D0Rw",
                 "last_video_id": "",
                 "enabled": true
             }
