@@ -212,6 +212,13 @@ def run_headless_pipeline():
     yt_cfg = cfg.get("youtube", {})
     fb_cfg = cfg.get("facebook", {})
 
+    # KIỂM SOÁT TẦN SUẤT: Giới hạn tối đa video/ngày để bảo vệ thuật toán kênh tránh bị bóp reach
+    max_daily_uploads = general_cfg.get("max_daily_uploads", 2)
+    today_uploaded = HistoryManager.get_today_uploaded_count()
+    if today_uploaded >= max_daily_uploads:
+        LogManager.log(f"Hôm nay đã đăng {today_uploaded}/{max_daily_uploads} video (đạt giới hạn vàng). Tạm dừng đăng thêm để bảo vệ thuật toán kênh.", "INFO", "WORKER")
+        return
+
     # Lấy thông tin các video đã có trên kênh đích YouTube để bảo vệ đa lớp chống trùng lặp tuyệt đối
     destination_info = get_destination_channel_uploaded_info(cfg, max_results=50)
     destination_titles = destination_info.get("titles", [])

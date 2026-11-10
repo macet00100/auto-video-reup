@@ -95,6 +95,19 @@ class HistoryManager:
         return bool(record.get(key, False))
 
     @staticmethod
+    def get_today_uploaded_count() -> int:
+        """Đếm số lượng video đã được đăng thành công trong ngày hôm nay để kiểm soát tần suất đăng."""
+        data = HistoryManager._load_raw()
+        history = data.get("history", {})
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        count = 0
+        for vid, item in history.items():
+            processed_at = item.get("processed_at", "")
+            if processed_at.startswith(today_str) and (item.get("youtube_uploaded") or item.get("facebook_uploaded")):
+                count += 1
+        return count
+
+    @staticmethod
     def record_processed(
         video_id: str,
         title: str,
