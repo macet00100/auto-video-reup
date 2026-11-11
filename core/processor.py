@@ -137,6 +137,9 @@ class VideoProcessor:
         crop_percent = int(rules.get("crop_percent", 3))
         color_boost = rules.get("color_boost", True)
         blur_border = rules.get("blur_border", False)
+        pitch_shift = rules.get("pitch_shift", True)
+        add_bgm = rules.get("add_bgm", True)
+        bgm_volume = float(rules.get("bgm_volume", 0.07))
         target_res = rules.get("target_resolution", "720p")
 
         # 0. Tự động nhận diện định dạng (Dạng 1: Phim dọc / Dạng 2: Phim ngang 16:9)
@@ -243,8 +246,12 @@ class VideoProcessor:
             pass
 
         af_parts = []
-        if speed != 1.0:
-            # atempo chuẩn thích ứng mọi sample rate (44.1kHz, 48kHz), giữ nguyên giọng nói rõ ràng không bị méo hay nghẹt tiếng
+        if pitch_shift:
+            # Dịch cao độ pitch (+3.5%) để phá vỡ Audio Fingerprint landmarks, giữ nguyên tốc độ khớp video
+            pitch_rate = 1.035
+            atempo_val = speed / pitch_rate
+            af_parts.append(f"asetrate=48000*{pitch_rate:.3f},aresample=48000,atempo={atempo_val:.4f}")
+        elif speed != 1.0:
             af_parts.append(f"atempo={speed:.3f}")
         af_parts.append("volume=1.05")
         af_str = ",".join(af_parts)
@@ -252,30 +259,52 @@ class VideoProcessor:
         preset = rules.get("preset", "veryfast")
         threads = str(rules.get("threads", 4))
 
-        cmd = [
-            "ffmpeg", "-y",
-            "-i", input_path,
-            "-vf", vf_str,
-            "-map", "0:v:0",
-        ]
+        bgm_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "storage", "assets", "ambient_bgm.mp3"))
+        use_bgm = add_bgm and has_audio and os.path.exists(bgm_file)
 
-        if has_audio:
-            cmd.extend([
-                "-map", "0:a:0",
-                "-af", af_str,
+        if use_bgm:
+            # Trộn âm thanh giọng nói đã biến đổi cao độ với nhạc nền ngầm (BGM) để triệt tiêu hoàn toàn dấu vân tay âm thanh
+            fc_str = f"[0:v]{vf_str}[vout];[0:a]{af_str}[a0];[1:a]volume={bgm_volume:.3f}[a1];[a0][a1]amix=inputs=2:duration=first:dropout_transition=2[aout]"
+            cmd = [
+                "ffmpeg", "-y",
+                "-i", input_path,
+                "-stream_loop", "-1", "-i", bgm_file,
+                "-filter_complex", fc_str,
+                "-map", "[vout]",
+                "-map", "[aout]",
+                "-c:v", "libx264",
+                "-preset", preset,
+                "-crf", "23",
+                "-r", "30",
                 "-c:a", "aac",
                 "-b:a", "192k",
-                "-ar", "48000"
+                "-ar", "48000",
+                "-threads", threads,
+                output_path
+            ]
+        else:
+            cmd = [
+                "ffmpeg", "-y",
+                "-i", input_path,
+                "-vf", vf_str,
+                "-map", "0:v:0",
+            ]
+            if has_audio:
+                cmd.extend([
+                    "-map", "0:a:0",
+                    "-af", af_str,
+                    "-c:a", "aac",
+                    "-b:a", "192k",
+                    "-ar", "48000"
+                ])
+            cmd.extend([
+                "-r", "30",
+                "-c:v", "libx264",
+                "-preset", preset,
+                "-crf", "23",
+                "-threads", threads,
+                output_path
             ])
-
-        cmd.extend([
-            "-r", "30",
-            "-c:v", "libx264",
-            "-preset", preset,
-            "-crf", "23",
-            "-threads", threads,
-            output_path
-        ])
 
         LogManager.log(f"[{task_id}] Thực thi lệnh FFmpeg ({'DỌC 9:16' if fmt_info['is_vertical'] else 'NGANG 16:9'}): {' '.join(cmd[:14])}...", "INFO", "FFMPEG")
 
