@@ -52,14 +52,18 @@ def run_simultaneous_reup():
                 if not feed.entries:
                     continue
 
-                # Lấy 3 video gần nhất của mỗi kênh để kiểm tra
-                for entry in feed.entries[:3]:
+                # Lấy 15 video gần nhất của mỗi kênh để kiểm tra
+                for entry in feed.entries[:15]:
                     v_id = getattr(entry, "yt_videoid", None)
                     if not v_id:
                         m = re.search(r"v=([a-zA-Z0-9_-]+)", entry.link)
                         if m: v_id = m.group(1)
 
                     if not v_id:
+                        continue
+
+                    # Chống trùng: Bỏ qua video đã có trong lịch sử
+                    if HistoryManager.is_processed(v_id):
                         continue
 
                     v_url = f"https://www.youtube.com/watch?v={v_id}"
@@ -94,9 +98,9 @@ def run_simultaneous_reup():
         LogManager.log("Không tìm thấy video nào thỏa mãn điều kiện 30 phút - 3 tiếng!", "ERROR", "WORKER")
         return
 
-    # Random chọn 1 video từ các ứng viên đạt chuẩn
-    selected = random.choice(eligible_candidates)
-    LogManager.log(f">>> RANDOM ĐÃ CHỌN: [{selected['channel_name']}] '{selected['title']}' ({selected['duration_mins']} phút)", "SUCCESS", "WORKER")
+    # Chọn video mới nhất từ các ứng viên đạt chuẩn chưa từng tải
+    selected = eligible_candidates[0]
+    LogManager.log(f">>> ĐÃ CHỌN VIDEO MỚI NHẤT: [{selected['channel_name']}] '{selected['title']}' ({selected['duration_mins']} phút)", "SUCCESS", "WORKER")
 
     task_id = f"simul_{int(time.time())}"
     source_url = selected["url"]

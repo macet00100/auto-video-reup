@@ -120,7 +120,7 @@ def is_title_duplicate(title1: str, title2: str, threshold: float = 0.45) -> boo
     # Phải có độ tương đồng từ 45% trở lên VÀ trùng ít nhất 4 từ khóa cốt truyện mới là cùng 1 bộ phim
     return similarity >= threshold and len(inter) >= 4
 
-def get_channel_latest_videos(channel_id: str, cfg: Dict[str, Any], max_results: int = 5) -> List[Dict[str, str]]:
+def get_channel_latest_videos(channel_id: str, cfg: Dict[str, Any], max_results: int = 15) -> List[Dict[str, str]]:
     """
     Quét video mới từ kênh YouTube bằng 3 tầng bảo vệ:
     1. YouTube Data API v3 (PlaylistItems từ uploads playlist): 100% chuẩn xác, không bao giờ 404.
@@ -254,7 +254,7 @@ def run_headless_pipeline():
         last_processed_vid = source_info.get("last_video_id", "")
 
         try:
-            videos = get_channel_latest_videos(channel_id, cfg, max_results=5)
+            videos = get_channel_latest_videos(channel_id, cfg, max_results=15)
             if not videos:
                 LogManager.log(f"Không quét được video nào từ kênh [{channel_name}].", "WARNING", "WORKER")
                 continue
