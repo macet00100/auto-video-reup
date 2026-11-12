@@ -151,12 +151,14 @@ def run_simultaneous_reup():
         # BƯỚC 4: RENDER FFMPEG BIẾN ĐỔI VIDEO (CHỐNG BẢN QUYỀN)
         LogManager.log(f"[{task_id}] Bước 4/5: FFmpeg transcode (Xóa logo, Tốc độ 1.03x, Đổi cao độ âm, KHÔNG lật sub)...", "INFO", "FFMPEG")
         bypass_rules = yt_cfg.get("bypass_rules", {
-            "hflip": False,
+            "hflip": True,
             "remove_logo": True,
-            "logo_position": "top-left",
-            "speed": 1.03,
+            "logo_position": "both-top",
+            "speed": 1.05,
             "pitch_shift": True,
-            "crop_percent": 3,
+            "add_bgm": True,
+            "bgm_volume": 0.08,
+            "crop_percent": 4.5,
             "color_boost": True,
             "change_fps": True,
             "target_resolution": "720p"

@@ -37,15 +37,15 @@
             "hflip": true,
             "remove_logo": true,
             "logo_position": "both-top",
-            "speed": 1.045,
+            "speed": 1.05,
             "pitch_shift": true,
-            "crop_percent": 3.5,
+            "crop_percent": 4.5,
             "blur_border": false,
             "color_boost": true,
             "change_fps": true,
             "target_resolution": "720p",
             "add_bgm": true,
-            "bgm_volume": 0.07
+            "bgm_volume": 0.08
         },
         "metadata_rules": {
             "rewrite_title": true,
@@ -77,15 +77,15 @@
             "hflip": true,
             "remove_logo": true,
             "logo_position": "both-top",
-            "speed": 1.045,
+            "speed": 1.05,
             "pitch_shift": true,
-            "crop_percent": 3.5,
+            "crop_percent": 4.5,
             "blur_border": false,
             "color_boost": true,
             "change_fps": true,
             "target_resolution": "720p",
             "add_bgm": true,
-            "bgm_volume": 0.07
+            "bgm_volume": 0.08
         },
         "metadata_rules": {
             "rewrite_title": true,

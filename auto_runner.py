@@ -404,15 +404,18 @@ def process_and_upload_simultaneously(
         # - pitch_shift=True (Biến đổi cao độ âm thanh)
         # - crop_percent=3.5 (Cắt viền phá tỷ lệ khung hình gốc)
         # - color_boost=True (Tăng tương phản & màu sắc thay đổi hash điểm ảnh)
+        user_bypass = yt_cfg.get("bypass_rules", {})
         combined_rules = {
-            "hflip": False,
-            "remove_logo": True,
-            "speed": 1.045,
-            "pitch_shift": True,
-            "crop_percent": 3.5,
-            "color_boost": True,
-            "change_fps": True,
-            "target_resolution": "720p",
+            "hflip": user_bypass.get("hflip", True),
+            "remove_logo": user_bypass.get("remove_logo", True),
+            "speed": float(user_bypass.get("speed", 1.05)),
+            "pitch_shift": user_bypass.get("pitch_shift", True),
+            "add_bgm": user_bypass.get("add_bgm", True),
+            "bgm_volume": float(user_bypass.get("bgm_volume", 0.08)),
+            "crop_percent": float(user_bypass.get("crop_percent", 4.5)),
+            "color_boost": user_bypass.get("color_boost", True),
+            "change_fps": user_bypass.get("change_fps", True),
+            "target_resolution": user_bypass.get("target_resolution", "720p"),
             "preset": "superfast" if bypass_duration_check else "veryfast"
         }
 
