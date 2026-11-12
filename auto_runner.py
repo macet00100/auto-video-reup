@@ -428,6 +428,8 @@ def process_and_upload_simultaneously(
         # BƯỚC 5: ĐĂNG ĐỒNG THỜI LÊN CẢ YOUTUBE VÀ FACEBOOK
         yt_success = False
         fb_success = False
+        uploaded_yt_id = None
+        uploaded_fb_id = None
 
         # 5.1 Đăng YouTube
         if upload_to_yt:
@@ -529,9 +531,10 @@ def process_and_upload_simultaneously(
                 if upload_to_fb:
                     fb_dest_reel = dict(fb_cfg.get("destination", {}))
                     fb_dest_reel["post_as_reel"] = True
+                    fb_link_watch = f"https://www.facebook.com/watch/?v={uploaded_fb_id}" if uploaded_fb_id else "Fanpage của tụi mình"
                     short_fb_desc = (
                         f"🎬 {s_title}\n\n"
-                        f"👉 Xem trọn bộ tập dài tại trang của tụi mình nhé!\n\n"
+                        f"👉 Xem trọn bộ tập dài tại đây: {fb_link_watch}\n\n"
                         f"#reels #reviewphim #xuhuong #phimhay #phimngan"
                     )
                     s_fb_res = FacebookUploader.upload(
@@ -541,8 +544,13 @@ def process_and_upload_simultaneously(
                         thumbnail_path=None,
                         config=fb_dest_reel
                     )
-                    if s_fb_res.get("success"):
-                        LogManager.log(f"[{task_id}] Đã đăng Facebook Reel #{s_idx+1}: {s_fb_res.get('video_id')}", "SUCCESS", "SHORTS")
+                    s_fb_id = s_fb_res.get("video_id") if isinstance(s_fb_res, dict) else None
+                    if s_fb_id:
+                        LogManager.log(f"[{task_id}] Đã đăng Facebook Reel #{s_idx+1}: {s_fb_id}", "SUCCESS", "SHORTS")
+                        # Đăng bình luận riêng kèm link Facebook video dài dưới Reel
+                        if uploaded_fb_id:
+                            fb_pin_comment = f"👉 XEM TRỌN BỘ TẬP DÀI TẠI ĐÂY: https://www.facebook.com/watch/?v={uploaded_fb_id}"
+                            FacebookUploader.add_comment(s_fb_id, fb_pin_comment, fb_cfg.get("destination", {}))
         except Exception as ex_shorts:
             LogManager.log(f"[{task_id}] Lỗi trong tiến trình tạo Shorts: {ex_shorts}", "WARNING", "SHORTS")
         finally:
