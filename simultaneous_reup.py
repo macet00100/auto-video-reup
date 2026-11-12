@@ -69,6 +69,12 @@ def run_simultaneous_reup():
                     v_url = f"https://www.youtube.com/watch?v={v_id}"
                     v_title = entry.title
 
+                    # Bỏ qua video chia phần / nhiều tập
+                    is_part, part_label = AIRewriter.is_multi_part_video(v_title)
+                    if is_part:
+                        LogManager.log(f"-> Bỏ qua video chia phần: {v_title} ({part_label})", "INFO", "FILTER")
+                        continue
+
                     # Kiểm tra thời lượng bằng yt-dlp
                     try:
                         info = ydl.extract_info(v_url, download=False)

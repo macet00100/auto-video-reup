@@ -264,6 +264,13 @@ def run_headless_pipeline():
                 video_title = vid_info["title"]
                 video_url = vid_info["url"]
 
+                # LỚP 0: BỎ QUA VIDEO CHIA PHẦN / NHIỀU TẬP (Chỉ chọn phim trọn bộ để tối ưu view và giữ chân người xem)
+                is_part, part_label = AIRewriter.is_multi_part_video(video_title)
+                if is_part:
+                    LogManager.log(f"Video [{video_title}] là video chia phần ({part_label}) -> BỎ QUA để chỉ chọn phim trọn bộ.", "INFO", "WORKER")
+                    HistoryManager.record_processed(video_id, video_title, yt_uploaded=False, fb_uploaded=False, extra={"skipped": True, "reason": f"Multi-part video ({part_label})"})
+                    continue
+
                 # LỚP 1: Kiểm tra lịch sử persistent JSON
                 if HistoryManager.is_processed(video_id):
                     LogManager.log(f"Video [{video_title}] (ID: {video_id}) đã có trong lịch sử đã xử lý -> BỎ QUA.", "INFO", "WORKER")

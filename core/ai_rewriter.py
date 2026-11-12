@@ -62,6 +62,20 @@ class AIRewriter:
     ]
 
     @staticmethod
+    def is_multi_part_video(title: str) -> Tuple[bool, Optional[str]]:
+        """
+        Kiểm tra xem video có phải là video chia phần / nhiều tập không.
+        Ví dụ: P1, P2, Phần 1, Tập 2, Part 3, Ep 4, Tập Cuối, Hồi 1...
+        (Cẩn thận không khớp nhầm 'Tập đoàn', 'Phần lớn', 'Phim'...).
+        Trả về (True, 'P1') hoặc (False, None).
+        """
+        pat = r'(?:^|[\s\(\[\|_\-])(?:P|Phần|Tập|Part|Ep|Episode|Hồi)\.?\s*(\d+|cuối|đầu)(?:$|[\s\)\]\|:\.\-_])'
+        m = re.search(pat, title, flags=re.IGNORECASE)
+        if m:
+            return True, m.group(0).strip()
+        return False, None
+
+    @staticmethod
     def extract_part_and_clean(raw_title: str) -> Tuple[Optional[str], str]:
         """
         1. Bỏ toàn bộ các từ giật tít vô nghĩa: 'Cực sốc', 'Cận cảnh', 'Khám phá ngay'...
@@ -99,12 +113,13 @@ class AIRewriter:
     @staticmethod
     def clean_and_format_title(raw_title: str) -> str:
         """
-        Làm sạch và quy chuẩn hóa tên phim: đưa Phần X lên đầu và bỏ từ rác.
+        Làm sạch và quy chuẩn hóa tên phim: đưa Phần X hoặc 'Full Trọn Bộ | ' lên đầu và bỏ từ rác.
         """
         part_num, clean_body = AIRewriter.extract_part_and_clean(raw_title)
+        clean_body = re.sub(r'^(?:full\s+trọn\s+bộ|trọn\s+bộ|bản\s+full|full)\s*[\:\|\-]?\s*', '', clean_body, flags=re.IGNORECASE).strip()
         if part_num:
             return f"Phần {part_num} - {clean_body}".strip()
-        return clean_body.strip()
+        return f"Full Trọn Bộ | {clean_body}".strip()
 
     @staticmethod
     def paraphrase_text(text: str) -> str:
@@ -132,6 +147,8 @@ class AIRewriter:
     def rewrite_title(original_title: str, gemini_key: Optional[str] = None, openai_key: Optional[str] = None) -> str:
         # Bước 1: Tách phần phim và làm sạch rác
         part_num, clean_body = AIRewriter.extract_part_and_clean(original_title)
+        # Bỏ các tiền tố full / trọn bộ có sẵn để tránh bị lặp lại
+        clean_body = re.sub(r'^(?:full\s+trọn\s+bộ|trọn\s+bộ|bản\s+full|full)\s*[\:\|\-]?\s*', '', clean_body, flags=re.IGNORECASE).strip()
 
         rewritten_body = None
 
@@ -202,15 +219,15 @@ class AIRewriter:
                 rewritten_body = f"{rewritten_body} | Bản Đẹp Trọn Bộ"
             LogManager.log(f"Smart Paraphraser đã biến tấu tiêu đề: '{rewritten_body}'", "INFO", "AI")
 
-        # Bước 5: Ghép phần phim (Phần X) lên đầu nếu nguồn có phần
+        # Bước 5: Ghép tiền tố "Full Trọn Bộ | " (nếu không chia phần) hoặc "Phần X -" (nếu có phần)
         if part_num:
             final_title = f"Phần {part_num} - {rewritten_body}"
         else:
-            final_title = rewritten_body
+            final_title = f"Full Trọn Bộ | {rewritten_body}"
 
-        # Giới hạn độ dài an toàn tối đa 95 ký tự để không bị cắt trên YouTube/Facebook
-        if len(final_title) > 95:
-            final_title = final_title[:95].rsplit(' ', 1)[0]
+        # Giới hạn độ dài an toàn tối đa 100 ký tự (chuẩn SEO YouTube và Facebook)
+        if len(final_title) > 100:
+            final_title = final_title[:100].rsplit(' ', 1)[0]
 
         return final_title.strip()
 
