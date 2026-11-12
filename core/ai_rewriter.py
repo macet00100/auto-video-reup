@@ -142,13 +142,16 @@ class AIRewriter:
                 # Sử dụng API REST với model gemini-flash-lite-latest phản hồi siêu nhanh và ổn định
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key={gemini_key.strip()}"
                 prompt = (
-                    f"Bạn là biên tập viên review phim chuyên nghiệp.\n"
-                    f"Nhiệm vụ: Viết lại tiêu đề phim sau đây sang cách diễn đạt mới mẻ, tự nhiên và cuốn hút:\n"
-                    f"1. Giữ trọn vẹn ý nghĩa cốt truyện, nhân vật và bối cảnh.\n"
-                    f"2. Thay đổi từ ngữ, đảo ngữ hoặc dùng từ đồng nghĩa để câu văn hoàn toàn mới lạ, hấp dẫn, KHÔNG BỊ TRÙNG VĂN BẢN với nguồn để tránh quét bản quyền.\n"
+                    f"Bạn là chuyên gia giật tít triệu view review phim trên YouTube & Facebook.\n"
+                    f"Nhiệm vụ: Viết lại tiêu đề phim sau theo CÔNG THỨC 3 VẾ GÂY TÒ MÒ ĐỈNH CAO:\n"
+                    f"Cấu trúc: [Hoàn cảnh éo le / Bị sỉ nhục, khinh thường] + [Biến cố bất ngờ / Thân phận bí mật lộ diện] + [Cái kết hả hê / Vả mặt cực gắt]\n"
+                    f"Ví dụ mẫu: 'Bị Mẹ Chồng Ép Ăn Cơm Thừa Ngay Ngày Cưới, Nào Ngờ Cô Là Chị Đại Giang Hồ Khiến Cả Nhà Quỳ Lạy'\n"
+                    f"Quy tắc sống còn:\n"
+                    f"1. Đưa tình huống kích thích tò mò và kịch tính nhất lên 45 ký tự đầu tiên để tối ưu cho người xem điện thoại.\n"
+                    f"2. Dùng các động từ mạnh, giàu cảm xúc: ép, đuổi, tát, quỳ lạy, vả mặt, san bằng, trả đũa, trắng tay, hối hận.\n"
                     f"3. TUYỆT ĐỐI KHÔNG thêm từ giật tít rẻ tiền như: Cực sốc, Cận cảnh, Khám phá ngay, Bất ngờ, Xem ngay.\n"
                     f"4. TUYỆT ĐỐI KHÔNG thêm Phần X vào nếu trong tiêu đề không có.\n"
-                    f"5. QUAN TRỌNG: Độ dài BẮT BUỘC dưới 85 ký tự (khoảng 10-15 từ) chuẩn SEO YouTube và Facebook.\n"
+                    f"5. Độ dài chuẩn mực: 65 đến 95 ký tự (chuẩn SEO YouTube và Facebook Reels).\n"
                     f"Chỉ trả về đúng 1 câu tiêu đề duy nhất, không giải thích, không để trong ngoặc kép.\n"
                     f"Tiêu đề gốc: '{clean_body}'"
                 )

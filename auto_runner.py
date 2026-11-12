@@ -485,6 +485,75 @@ def process_and_upload_simultaneously(
             except Exception as e:
                 LogManager.log(f"[{task_id}] Lỗi khi upload Facebook: {e}", "ERROR", "FACEBOOK")
 
+        # 5.3 TỰ ĐỘNG TẠO & ĐĂNG 2 VIDEO SHORTS / REELS KÉO SUB & VIEW CHO TẬP DÀI
+        shorts_list = []
+        try:
+            from core.shorts_generator import ShortsGenerator
+            shorts_list = ShortsGenerator.extract_shorts(
+                processed_video_path=processed_video,
+                base_title=new_title,
+                task_id=task_id,
+                count=2,
+                clip_duration=50
+            )
+            for s_idx, short_item in enumerate(shorts_list):
+                s_path = short_item["path"]
+                s_title = short_item["title"]
+
+                # 1. Đăng lên YouTube Shorts
+                if upload_to_yt and uploaded_yt_id:
+                    short_yt_title = f"{s_title} | Xem Full Tập Ở Bình Luận #Shorts #ReviewPhim #PhimHay"
+                    if len(short_yt_title) > 100:
+                        short_yt_title = short_yt_title[:100].rsplit(' ', 1)[0]
+                    short_yt_desc = (
+                        f"🎬 Xem trọn bộ Full tại đây: https://www.youtube.com/watch?v={uploaded_yt_id}\n\n"
+                        f"#Shorts #ReviewPhim #PhimHay #XuHuong #Trending #PhimNgan"
+                    )
+                    short_tags = ["shorts", "reviewphim", "phimhay", "xuhuong", "phimngan", "trending"]
+                    s_yt_res = YouTubeUploader.upload(
+                        video_path=s_path,
+                        title=short_yt_title,
+                        description=short_yt_desc,
+                        thumbnail_path=None,
+                        config=yt_cfg.get("destination", {}),
+                        tags=short_tags
+                    )
+                    s_yt_id = s_yt_res.get("video_id") if isinstance(s_yt_res, dict) else None
+                    if s_yt_id:
+                        LogManager.log(f"[{task_id}] Đã đăng YouTube Short #{s_idx+1}: {s_yt_id}", "SUCCESS", "SHORTS")
+                        # Ghim bình luận link video dài
+                        pin_comment = f"👉 XEM TRỌN BỘ FULL TẠI ĐÂY: https://www.youtube.com/watch?v={uploaded_yt_id}"
+                        YouTubeUploader.add_comment(s_yt_id, pin_comment, yt_cfg.get("destination", {}))
+
+                # 2. Đăng lên Facebook Reels
+                if upload_to_fb:
+                    fb_dest_reel = dict(fb_cfg.get("destination", {}))
+                    fb_dest_reel["post_as_reel"] = True
+                    short_fb_desc = (
+                        f"🎬 {s_title}\n\n"
+                        f"👉 Xem trọn bộ tập dài tại trang của tụi mình nhé!\n\n"
+                        f"#reels #reviewphim #xuhuong #phimhay #phimngan"
+                    )
+                    s_fb_res = FacebookUploader.upload(
+                        video_path=s_path,
+                        title=s_title,
+                        description=short_fb_desc,
+                        thumbnail_path=None,
+                        config=fb_dest_reel
+                    )
+                    if s_fb_res.get("success"):
+                        LogManager.log(f"[{task_id}] Đã đăng Facebook Reel #{s_idx+1}: {s_fb_res.get('video_id')}", "SUCCESS", "SHORTS")
+        except Exception as ex_shorts:
+            LogManager.log(f"[{task_id}] Lỗi trong tiến trình tạo Shorts: {ex_shorts}", "WARNING", "SHORTS")
+        finally:
+            for s_item in shorts_list:
+                sp = s_item.get("path")
+                if sp and os.path.exists(sp):
+                    try:
+                        os.remove(sp)
+                    except Exception:
+                        pass
+
         if yt_success or fb_success:
             # Lưu ngay vào lịch sử và push Git ngay lập tức
             HistoryManager.record_processed(video_id, new_title, yt_uploaded=yt_success, fb_uploaded=fb_success)
