@@ -1575,10 +1575,12 @@
     },
     "MHWjESHA9P0": {
       "title": "Full Trọn Bộ | Vợ Đòi Ly Hôn Sau 5 Năm, Anh Đồng Ý Ngay, Nào Ngờ Có Năng Lực Biết Trước Tương Lai",
-      "youtube_uploaded": true,
-      "facebook_uploaded": true,
+      "youtube_uploaded": false,
+      "facebook_uploaded": false,
       "processed_at": "2026-11-13T09:27:21.241669",
-      "extra": {}
+      "extra": {
+        "deleted_at": "2026-11-13"
+      }
     }
   }
 }
