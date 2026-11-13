@@ -423,6 +423,7 @@ def process_and_upload_simultaneously(
             "color_boost": user_bypass.get("color_boost", True),
             "change_fps": user_bypass.get("change_fps", True),
             "target_resolution": user_bypass.get("target_resolution", "720p"),
+            "cut_intro_seconds": float(user_bypass.get("cut_intro_seconds", 2.5)),
             "preset": "superfast" if bypass_duration_check else "veryfast"
         }
 
@@ -511,7 +512,7 @@ def process_and_upload_simultaneously(
 
                 # 1. Đăng lên YouTube Shorts
                 if upload_to_yt and uploaded_yt_id:
-                    short_yt_title = f"{s_title} | Xem Full Tập Ở Bình Luận #Shorts #ReviewPhim #PhimHay"
+                    short_yt_title = f"{s_title} #Shorts #ReviewPhim #PhimHay"
                     if len(short_yt_title) > 100:
                         short_yt_title = short_yt_title[:100].rsplit(' ', 1)[0]
                     short_yt_desc = (

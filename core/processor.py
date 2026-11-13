@@ -141,6 +141,7 @@ class VideoProcessor:
         add_bgm = rules.get("add_bgm", True)
         bgm_volume = float(rules.get("bgm_volume", 0.07))
         target_res = rules.get("target_resolution", "720p")
+        cut_intro_seconds = float(rules.get("cut_intro_seconds", 2.5)) # Cắt bỏ bảng cảnh báo disclaimer ở đầu phim
 
         # 0. Tự động nhận diện định dạng (Dạng 1: Phim dọc / Dạng 2: Phim ngang 16:9)
         fmt_info = VideoProcessor.detect_video_format(input_path, task_id)
@@ -265,8 +266,10 @@ class VideoProcessor:
         if use_bgm:
             # Trộn âm thanh giọng nói đã biến đổi cao độ với nhạc nền ngầm (BGM) để triệt tiêu hoàn toàn dấu vân tay âm thanh
             fc_str = f"[0:v]{vf_str}[vout];[0:a]{af_str}[a0];[1:a]volume={bgm_volume:.3f}[a1];[a0][a1]amix=inputs=2:duration=first:dropout_transition=2[aout]"
-            cmd = [
-                "ffmpeg", "-y",
+            cmd = ["ffmpeg", "-y"]
+            if cut_intro_seconds > 0:
+                cmd.extend(["-ss", str(cut_intro_seconds)])
+            cmd.extend([
                 "-i", input_path,
                 "-stream_loop", "-1", "-i", bgm_file,
                 "-filter_complex", fc_str,
@@ -281,14 +284,16 @@ class VideoProcessor:
                 "-ar", "48000",
                 "-threads", threads,
                 output_path
-            ]
+            ])
         else:
-            cmd = [
-                "ffmpeg", "-y",
+            cmd = ["ffmpeg", "-y"]
+            if cut_intro_seconds > 0:
+                cmd.extend(["-ss", str(cut_intro_seconds)])
+            cmd.extend([
                 "-i", input_path,
                 "-vf", vf_str,
                 "-map", "0:v:0",
-            ]
+            ])
             if has_audio:
                 cmd.extend([
                     "-map", "0:a:0",

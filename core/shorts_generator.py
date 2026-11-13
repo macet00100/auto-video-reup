@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 import numpy as np
 from typing import List, Dict, Any, Tuple
@@ -111,15 +112,15 @@ class ShortsGenerator:
             )
 
             return [
-                (best_p1, "Tập 1", "Xung đột kịch tính nhất"),
-                (best_p2, "Cao Trào", "Vả mặt đỉnh điểm nhất")
+                (best_p1, "Cao Trào 1", "Xung đột kịch tính nhất"),
+                (best_p2, "Cao Trào 2", "Vả mặt đỉnh điểm nhất")
             ]
 
         except Exception as e:
             LogManager.log(f"Lỗi khi phân tích phổ âm thanh (dùng mốc tiêu chuẩn): {e}", "WARNING", "SHORTS")
             return [
-                (int(total_duration * 0.20), "Tập 1", "Xung đột ban đầu"),
-                (int(total_duration * 0.75), "Cao Trào", "Đỉnh điểm vả mặt")
+                (int(total_duration * 0.20), "Cao Trào 1", "Xung đột ban đầu"),
+                (int(total_duration * 0.75), "Cao Trào 2", "Đỉnh điểm vả mặt")
             ]
         finally:
             if os.path.exists(temp_wav):
@@ -203,7 +204,10 @@ class ShortsGenerator:
 
             res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             if res.returncode == 0 and os.path.exists(out_short_path) and os.path.getsize(out_short_path) > 10000:
-                short_title = f"[{label_prefix}] {base_title}"
+                # Gọt sạch toàn bộ 'Full Trọn Bộ | ', 'Trọn Bộ | ', '[Tập X]' để video Short không bao giờ có chữ 'Full trọn bộ'
+                clean_short_base = re.sub(r'^(?:\[.*?\]\s*)?(?:full\s+trọn\s+bộ|trọn\s+bộ|bản\s+full|full)\s*[\:\|\-]?\s*', '', base_title, flags=re.IGNORECASE).strip()
+                clean_short_base = re.sub(r'^(?:\[\s*(?:tập|phần|p)\.?\s*\d+\s*\]|(?:tập|phần|p)\.?\s*\d+[\s:\-\|])\s*', '', clean_short_base, flags=re.IGNORECASE).strip()
+                short_title = f"[{label_prefix}] {clean_short_base}"
                 if len(short_title) > 90:
                     short_title = short_title[:90].rsplit(' ', 1)[0]
 
