@@ -516,7 +516,7 @@ def process_and_upload_simultaneously(
                     if len(short_yt_title) > 100:
                         short_yt_title = short_yt_title[:100].rsplit(' ', 1)[0]
                     short_yt_desc = (
-                        f"🎬 Xem trọn bộ Full tại đây: https://www.youtube.com/watch?v={uploaded_yt_id}\n\n"
+                        f"🎬 {s_title}\n\n"
                         f"#Shorts #ReviewPhim #PhimHay #XuHuong #Trending #PhimNgan"
                     )
                     short_tags = ["shorts", "reviewphim", "phimhay", "xuhuong", "phimngan", "trending"]
@@ -542,10 +542,8 @@ def process_and_upload_simultaneously(
                 if upload_to_fb:
                     fb_dest_reel = dict(fb_cfg.get("destination", {}))
                     fb_dest_reel["post_as_reel"] = True
-                    fb_link_watch = f"https://www.facebook.com/watch/?v={uploaded_fb_id}" if uploaded_fb_id else "Fanpage của tụi mình"
                     short_fb_desc = (
                         f"🎬 {s_title}\n\n"
-                        f"👉 Xem trọn bộ tập dài tại đây: {fb_link_watch}\n\n"
                         f"#reels #reviewphim #xuhuong #phimhay #phimngan"
                     )
                     s_fb_res = FacebookUploader.upload(
