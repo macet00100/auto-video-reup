@@ -531,8 +531,11 @@ def process_and_upload_simultaneously(
                     s_yt_id = s_yt_res.get("video_id") if isinstance(s_yt_res, dict) else None
                     if s_yt_id:
                         LogManager.log(f"[{task_id}] Đã đăng YouTube Short #{s_idx+1}: {s_yt_id}", "SUCCESS", "SHORTS")
-                        # Ghim bình luận link video dài
-                        pin_comment = f"👉 XEM TRỌN BỘ FULL TẠI ĐÂY: https://www.youtube.com/watch?v={uploaded_yt_id}"
+                        # Ghim bình luận link video dài (đa dạng câu từ tránh spam)
+                        if s_idx == 0:
+                            pin_comment = f"👉 XEM TRỌN BỘ FULL TẠI ĐÂY: https://www.youtube.com/watch?v={uploaded_yt_id}"
+                        else:
+                            pin_comment = f"🎬 Xem trọn bộ diễn biến tập dài tại đây: https://www.youtube.com/watch?v={uploaded_yt_id}"
                         YouTubeUploader.add_comment(s_yt_id, pin_comment, yt_cfg.get("destination", {}))
 
                 # 2. Đăng lên Facebook Reels
@@ -555,9 +558,12 @@ def process_and_upload_simultaneously(
                     s_fb_id = s_fb_res.get("video_id") if isinstance(s_fb_res, dict) else None
                     if s_fb_id:
                         LogManager.log(f"[{task_id}] Đã đăng Facebook Reel #{s_idx+1}: {s_fb_id}", "SUCCESS", "SHORTS")
-                        # Đăng bình luận riêng kèm link Facebook video dài dưới Reel
+                        # Đăng bình luận riêng kèm link Facebook video dài dưới Reel (đa dạng hóa câu chữ để tránh spam trùng lặp)
                         if uploaded_fb_id:
-                            fb_pin_comment = f"👉 XEM TRỌN BỘ TẬP DÀI TẠI ĐÂY: https://www.facebook.com/watch/?v={uploaded_fb_id}"
+                            if s_idx == 0:
+                                fb_pin_comment = f"👉 XEM TRỌN BỘ TẬP DÀI TẠI ĐÂY: https://www.facebook.com/watch/?v={uploaded_fb_id}"
+                            else:
+                                fb_pin_comment = f"🎬 Xem trọn bộ diễn biến tập dài tại đây: https://www.facebook.com/watch/?v={uploaded_fb_id}"
                             FacebookUploader.add_comment(s_fb_id, fb_pin_comment, fb_cfg.get("destination", {}))
         except Exception as ex_shorts:
             LogManager.log(f"[{task_id}] Lỗi trong tiến trình tạo Shorts: {ex_shorts}", "WARNING", "SHORTS")

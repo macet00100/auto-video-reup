@@ -1,4 +1,5 @@
 import os
+import time
 import requests
 from typing import Dict, Any, Optional
 from core.task_queue import LogManager
@@ -228,8 +229,8 @@ class FacebookUploader:
             return False
 
     @staticmethod
-    def add_comment(video_id: str, comment_text: str, config: Dict[str, Any]) -> bool:
-        """Tự động đăng bình luận dưới video Facebook vừa xuất bản."""
+    def add_comment(video_id: str, comment_text: str, config: Dict[str, Any], max_retries: int = 3) -> bool:
+        """Tự động đăng bình luận dưới video Facebook vừa xuất bản (kèm cơ chế chờ xử lý & thử lại)."""
         if not video_id or not comment_text:
             return False
         page_id = config.get("page_id", "").strip()
@@ -249,20 +250,30 @@ class FacebookUploader:
         except Exception:
             pass
 
-        # Thử bình luận qua endpoint /{video_id}/comments hoặc /{page_id}_{video_id}/comments
-        for target_id in [video_id, f"{page_id}_{video_id}"]:
-            try:
-                url = f"https://graph.facebook.com/v19.0/{target_id}/comments"
-                res = requests.post(
-                    url,
-                    data={"message": comment_text, "access_token": page_token},
-                    timeout=20
-                )
-                if res.status_code in [200, 201]:
-                    LogManager.log(f"Đã tự động đăng bình luận lên Facebook: '{comment_text}'", "SUCCESS", "FACEBOOK")
-                    return True
-            except Exception:
-                pass
+        # Facebook Reels cần vài giây để hoàn tất khởi tạo luồng bình luận (comment thread)
+        for attempt in range(1, max_retries + 1):
+            if attempt > 1:
+                wait_sec = attempt * 4
+                LogManager.log(f"Đang chờ {wait_sec}s để thử lại bình luận Facebook cho video {video_id} (Lần {attempt}/{max_retries})...", "INFO", "FACEBOOK")
+                time.sleep(wait_sec)
+            else:
+                time.sleep(3)  # Chờ 3s ban đầu để Facebook kích hoạt bài đăng Reels
 
-        LogManager.log("Bình luận Facebook chưa hoàn tất (Page Token cần cấp thêm quyền pages_manage_engagement).", "WARNING", "FACEBOOK")
+            for target_id in [video_id, f"{page_id}_{video_id}"]:
+                try:
+                    url = f"https://graph.facebook.com/v19.0/{target_id}/comments"
+                    res = requests.post(
+                        url,
+                        data={"message": comment_text, "access_token": page_token},
+                        timeout=20
+                    )
+                    if res.status_code in [200, 201]:
+                        LogManager.log(f"Đã tự động đăng bình luận lên Facebook: '{comment_text}'", "SUCCESS", "FACEBOOK")
+                        return True
+                    else:
+                        LogManager.log(f"Lần {attempt} bình luận FB chưa thành công ({target_id} - code {res.status_code}): {res.text[:120]}", "WARNING", "FACEBOOK")
+                except Exception as ex:
+                    LogManager.log(f"Lỗi kết nối khi bình luận FB ({target_id}): {ex}", "WARNING", "FACEBOOK")
+
+        LogManager.log(f"Bình luận Facebook chưa hoàn tất cho video {video_id} sau {max_retries} lần thử.", "WARNING", "FACEBOOK")
         return False
