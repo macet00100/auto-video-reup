@@ -135,7 +135,9 @@ class ShortsGenerator:
         base_title: str,
         task_id: str,
         count: int = 2,
-        clip_duration: int = 50
+        clip_duration: int = 50,
+        gemini_key: Optional[str] = None,
+        openai_key: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """
         Tự động cắt đúng 2 đoạn cao trào nhất (50s/clip) từ video dài dựa trên phân tích phổ âm thanh thực tế.
@@ -155,6 +157,18 @@ class ShortsGenerator:
 
         # Sử dụng thuật toán đo năng lượng âm thanh thực tế để tìm điểm cao trào
         cut_points = ShortsGenerator.find_audio_peak_moments(processed_video_path, clip_duration)
+
+        # Gọt sạch tiền tố Full Trọn Bộ / Tập khỏi tiêu đề gốc
+        clean_short_base = re.sub(r'^(?:\[.*?\]\s*)?(?:full\s+trọn\s+bộ|trọn\s+bộ|bản\s+full|full)\s*[\:\|\-]?\s*', '', base_title, flags=re.IGNORECASE).strip()
+        clean_short_base = re.sub(r'^(?:\[\s*(?:tập|phần|p)\.?\s*\d+\s*\]|(?:tập|phần|p)\.?\s*\d+[\s:\-\|])\s*', '', clean_short_base, flags=re.IGNORECASE).strip()
+
+        # Tạo tiêu đề Short tự nhiên, độc lập bằng AI (Cách 2)
+        try:
+            from core.ai_rewriter import AIRewriter
+            ai_short_titles = AIRewriter.generate_shorts_titles(clean_short_base, gemini_key=gemini_key, openai_key=openai_key)
+        except Exception as e:
+            LogManager.log(f"Lỗi tạo tiêu đề Shorts bằng AI: {e}", "WARNING", "SHORTS")
+            ai_short_titles = (f"Đoạn Hay Nhất | {clean_short_base}", f"Cái Kết Cực Hả Hê | {clean_short_base}")
 
         shorts_results = []
 
@@ -204,10 +218,12 @@ class ShortsGenerator:
 
             res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             if res.returncode == 0 and os.path.exists(out_short_path) and os.path.getsize(out_short_path) > 10000:
-                # Gọt sạch toàn bộ 'Full Trọn Bộ | ', 'Trọn Bộ | ', '[Tập X]' để video Short không bao giờ có chữ 'Full trọn bộ'
-                clean_short_base = re.sub(r'^(?:\[.*?\]\s*)?(?:full\s+trọn\s+bộ|trọn\s+bộ|bản\s+full|full)\s*[\:\|\-]?\s*', '', base_title, flags=re.IGNORECASE).strip()
-                clean_short_base = re.sub(r'^(?:\[\s*(?:tập|phần|p)\.?\s*\d+\s*\]|(?:tập|phần|p)\.?\s*\d+[\s:\-\|])\s*', '', clean_short_base, flags=re.IGNORECASE).strip()
-                short_title = f"[{label_prefix}] {clean_short_base}"
+                # Tiêu đề Shorts tự nhiên do AI tạo riêng biệt, không có nhãn bot cơ học
+                if idx < len(ai_short_titles):
+                    short_title = ai_short_titles[idx]
+                else:
+                    short_title = f"Đoạn Hay Nhất | {clean_short_base}"
+
                 if len(short_title) > 90:
                     short_title = short_title[:90].rsplit(' ', 1)[0]
 

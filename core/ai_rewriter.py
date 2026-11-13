@@ -232,6 +232,107 @@ class AIRewriter:
         return final_title.strip()
 
     @staticmethod
+    def generate_shorts_titles(
+        base_title: str,
+        gemini_key: Optional[str] = None,
+        openai_key: Optional[str] = None
+    ) -> Tuple[str, str]:
+        """
+        Sử dụng AI tạo 2 tiêu đề Short/Reel giật gân, độc lập, không dùng tiền tố máy móc như [Cao Trào 1].
+        - Short 1: Nửa đầu phim - xung đột bùng nổ / éo le / uất ức.
+        - Short 2: Nửa sau phim - vả mặt đỉnh cao / lật kèo hả hê.
+        """
+        clean_base = re.sub(r'^(?:\[.*?\]\s*)?(?:full\s+trọn\s+bộ|trọn\s+bộ|bản\s+full|full)\s*[\:\|\-]?\s*', '', base_title, flags=re.IGNORECASE).strip()
+        clean_base = re.sub(r'^(?:\[\s*(?:tập|phần|p)\.?\s*\d+\s*\]|(?:tập|phần|p)\.?\s*\d+[\s:\-\|])\s*', '', clean_base, flags=re.IGNORECASE).strip()
+
+        title_1 = None
+        title_2 = None
+
+        if gemini_key and gemini_key.strip():
+            try:
+                import requests
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key={gemini_key.strip()}"
+                prompt = (
+                    f"Bạn là chuyên gia biên tập video ngắn (YouTube Shorts & Facebook Reels) triệu view review phim vi kịch Trung Quốc.\n"
+                    f"Nhiệm vụ: Tạo đúng 2 TIÊU ĐỀ VIDEO NGẮN GIẬT GÂN RIÊNG BIỆT từ nội dung bộ phim: '{clean_base}'\n\n"
+                    f"1. Tiêu đề Short 1 (Cắt từ nửa đầu phim - Xung đột / Uất ức / Biến cố éo le khởi đầu): Tít kích thích tò mò về sự bất công hoặc biến cố.\n"
+                    f"2. Tiêu đề Short 2 (Cắt từ nửa sau phim - Cao trào / Vả mặt cực gắt / Cái kết hả hê): Tít kích thích cảm giác thỏa mãn, lật mặt kẻ ác.\n\n"
+                    f"Quy tắc sống còn:\n"
+                    f"- TUYỆT ĐỐI KHÔNG dùng từ: 'Cao trào', 'Short', 'Tập', 'Phần', 'Full Trọn Bộ', 'Tập 1', 'Tập 2'.\n"
+                    f"- Viết tự nhiên như biên tập viên triệu view, dùng từ ngữ giật gân, cuốn hút, kích thích click.\n"
+                    f"- Độ dài mỗi tiêu đề: 45 đến 85 ký tự (chuẩn điện thoại).\n"
+                    f"- Trả về chính xác 2 dòng:\n"
+                    f"Dòng 1: [Tiêu đề Short 1]\n"
+                    f"Dòng 2: [Tiêu đề Short 2]\n"
+                    f"KHÔNG thêm số thứ tự, không gạch đầu dòng, không giải thích gì khác."
+                )
+                payload = {"contents": [{"parts": [{"text": prompt}]}]}
+                res = requests.post(url, headers={"Content-Type": "application/json"}, json=payload, timeout=12)
+                if res.status_code == 200:
+                    data = res.json()
+                    candidates = data.get("candidates", [])
+                    if candidates:
+                        raw_text = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+                        lines = [l.strip() for l in raw_text.split("\n") if l.strip()]
+                        cleaned_lines = []
+                        for l in lines:
+                            cl = re.sub(r'^(?:dòng\s*\d+\s*[:\-]|short\s*\d+\s*[:\-]|tiêu\s*đề\s*\d+\s*[:\-]|[\d]+[\.\)\-]\s*)', '', l, flags=re.IGNORECASE).strip()
+                            cl = cl.replace('"', '').replace("'", "")
+                            if cl:
+                                cleaned_lines.append(cl)
+                        if len(cleaned_lines) >= 2:
+                            title_1 = cleaned_lines[0]
+                            title_2 = cleaned_lines[1]
+                            LogManager.log(f"Gemini AI đã tạo 2 tiêu đề Short tự nhiên:\n  1. {title_1}\n  2. {title_2}", "SUCCESS", "AI")
+            except Exception as e:
+                LogManager.log(f"Lỗi khi dùng Gemini tạo tiêu đề Shorts: {e}", "WARNING", "AI")
+
+        if not title_1 or not title_2:
+            if openai_key and openai_key.strip():
+                try:
+                    from openai import OpenAI
+                    client = OpenAI(api_key=openai_key.strip())
+                    prompt = (
+                        f"Tạo 2 tiêu đề video ngắn Shorts/Reels review phim giật gân từ: '{clean_base}'.\n"
+                        f"Dòng 1: Short 1 (nửa đầu phim - xung đột éo le).\n"
+                        f"Dòng 2: Short 2 (nửa sau phim - vả mặt hả hê).\n"
+                        f"Không ghi số dòng, không ghi Cao trào hay Tập. Mỗi tiêu đề 45-85 ký tự."
+                    )
+                    completion = client.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=[{"role": "user", "content": prompt}],
+                        temperature=0.8,
+                        max_tokens=150
+                    )
+                    raw_text = completion.choices[0].message.content or ""
+                    lines = [l.strip() for l in raw_text.split("\n") if l.strip()]
+                    cleaned_lines = []
+                    for l in lines:
+                        cl = re.sub(r'^(?:dòng\s*\d+\s*[:\-]|short\s*\d+\s*[:\-]|tiêu\s*đề\s*\d+\s*[:\-]|[\d]+[\.\)\-]\s*)', '', l, flags=re.IGNORECASE).strip()
+                        cl = cl.replace('"', '').replace("'", "")
+                        if cl:
+                            cleaned_lines.append(cl)
+                    if len(cleaned_lines) >= 2:
+                        title_1 = cleaned_lines[0]
+                        title_2 = cleaned_lines[1]
+                except Exception as e:
+                    LogManager.log(f"Lỗi khi dùng OpenAI tạo tiêu đề Shorts: {e}", "WARNING", "AI")
+
+        # Fallback tự nhiên nếu không có AI hoặc lỗi mạng:
+        if not title_1:
+            title_1 = f"Đoạn Hay Nhất | {clean_base}"
+        if not title_2:
+            title_2 = f"Cái Kết Cực Hả Hê | {clean_base}"
+
+        # Đảm bảo độ dài an toàn tối đa 90 ký tự
+        if len(title_1) > 90:
+            title_1 = title_1[:90].rsplit(' ', 1)[0]
+        if len(title_2) > 90:
+            title_2 = title_2[:90].rsplit(' ', 1)[0]
+
+        return (title_1.strip(), title_2.strip())
+
+    @staticmethod
     def get_recommended_tags(title: str) -> List[str]:
         """
         Tạo danh sách 20-30 thẻ tags chuẩn SEO YouTube:

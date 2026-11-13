@@ -378,6 +378,9 @@ def process_and_upload_simultaneously(
     raw_thumb = dl_res.get("thumbnail_path")
     actual_title = dl_res.get("title", orig_title)
 
+    gemini_key = general_cfg.get("gemini_api_key") or os.getenv("GEMINI_API_KEY")
+    openai_key = general_cfg.get("openai_api_key") or os.getenv("OPENAI_API_KEY")
+
     try:
         # BƯỚC 2: AI VIẾT LẠI TIÊU ĐỀ 1 LẦN DUY NHẤT (Chuẩn hóa tên phim + Phần X lên đầu)
         new_title = actual_title
@@ -385,8 +388,8 @@ def process_and_upload_simultaneously(
         if meta_rules.get("rewrite_title", True):
             new_title = AIRewriter.rewrite_title(
                 actual_title,
-                gemini_key=general_cfg.get("gemini_api_key"),
-                openai_key=general_cfg.get("openai_api_key")
+                gemini_key=gemini_key,
+                openai_key=openai_key
             )
             prefix = meta_rules.get("title_prefix", "")
             suffix = meta_rules.get("title_suffix", "")
@@ -447,8 +450,8 @@ def process_and_upload_simultaneously(
                 title=new_title,
                 orig_title=actual_title,
                 video_id=video_id,
-                gemini_key=general_cfg.get("gemini_api_key"),
-                openai_key=general_cfg.get("openai_api_key")
+                gemini_key=gemini_key,
+                openai_key=openai_key
             )
             LogManager.log(f"[{task_id}] Đang tải lên YouTube kèm {len(seo_tags)} thẻ tags SEO...", "INFO", "YOUTUBE")
             try:
@@ -504,7 +507,9 @@ def process_and_upload_simultaneously(
                 base_title=new_title,
                 task_id=task_id,
                 count=2,
-                clip_duration=50
+                clip_duration=50,
+                gemini_key=gemini_key,
+                openai_key=openai_key
             )
             for s_idx, short_item in enumerate(shorts_list):
                 s_path = short_item["path"]
@@ -531,11 +536,19 @@ def process_and_upload_simultaneously(
                     s_yt_id = s_yt_res.get("video_id") if isinstance(s_yt_res, dict) else None
                     if s_yt_id:
                         LogManager.log(f"[{task_id}] Đã đăng YouTube Short #{s_idx+1}: {s_yt_id}", "SUCCESS", "SHORTS")
-                        # Ghim bình luận link video dài (đa dạng câu từ tránh spam)
+                        # Ghim bình luận link video dài và hướng dẫn bấm vào kênh (vì YouTube khóa click link trên Shorts)
                         if s_idx == 0:
-                            pin_comment = f"👉 XEM TRỌN BỘ FULL TẠI ĐÂY: https://www.youtube.com/watch?v={uploaded_yt_id}"
+                            pin_comment = (
+                                f"🎬 XEM TRỌN BỘ FULL TẬP DÀI:\n"
+                                f"👉 Bấm vào kênh @CoolMeoPhim để xem trọn bộ tập dài mới nhất nhé!\n"
+                                f"🔗 Link: https://www.youtube.com/watch?v={uploaded_yt_id}"
+                            )
                         else:
-                            pin_comment = f"🎬 Xem trọn bộ diễn biến tập dài tại đây: https://www.youtube.com/watch?v={uploaded_yt_id}"
+                            pin_comment = (
+                                f"🎬 Xem trọn bộ diễn biến tập dài:\n"
+                                f"👉 Bấm vào kênh @CoolMeoPhim để xem video dài ở đầu trang nhé!\n"
+                                f"🔗 Link: https://www.youtube.com/watch?v={uploaded_yt_id}"
+                            )
                         YouTubeUploader.add_comment(s_yt_id, pin_comment, yt_cfg.get("destination", {}))
 
                 # 2. Đăng lên Facebook Reels
