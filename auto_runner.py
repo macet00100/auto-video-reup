@@ -418,7 +418,7 @@ def process_and_upload_simultaneously(
             "speed": float(user_bypass.get("speed", 1.05)),
             "pitch_shift": user_bypass.get("pitch_shift", True),
             "add_bgm": user_bypass.get("add_bgm", True),
-            "bgm_volume": float(user_bypass.get("bgm_volume", 0.08)),
+            "bgm_volume": float(user_bypass.get("bgm_volume", 0.12)),
             "crop_percent": float(user_bypass.get("crop_percent", 4.5)),
             "color_boost": user_bypass.get("color_boost", True),
             "change_fps": user_bypass.get("change_fps", True),

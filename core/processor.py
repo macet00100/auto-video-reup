@@ -248,8 +248,8 @@ class VideoProcessor:
 
         af_parts = []
         if pitch_shift:
-            # Dịch cao độ pitch (+3.5%) để phá vỡ Audio Fingerprint landmarks, giữ nguyên tốc độ khớp video
-            pitch_rate = 1.035
+            # Dịch cao độ pitch (+4.2%) để phá vỡ hoàn toàn Audio Fingerprint landmarks, giữ nguyên tốc độ khớp video
+            pitch_rate = 1.042
             atempo_val = speed / pitch_rate
             af_parts.append(f"asetrate=48000*{pitch_rate:.3f},aresample=48000,atempo={atempo_val:.4f}")
         elif speed != 1.0:

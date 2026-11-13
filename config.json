@@ -46,7 +46,7 @@
             "change_fps": true,
             "target_resolution": "720p",
             "add_bgm": true,
-            "bgm_volume": 0.08
+            "bgm_volume": 0.12
         },
         "metadata_rules": {
             "rewrite_title": true,
@@ -87,7 +87,7 @@
             "change_fps": true,
             "target_resolution": "720p",
             "add_bgm": true,
-            "bgm_volume": 0.08
+            "bgm_volume": 0.12
         },
         "metadata_rules": {
             "rewrite_title": true,
