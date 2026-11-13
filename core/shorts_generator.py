@@ -2,7 +2,7 @@ import os
 import re
 import subprocess
 import numpy as np
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 from core.task_queue import LogManager
 
 class ShortsGenerator:
