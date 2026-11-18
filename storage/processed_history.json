@@ -193,7 +193,9 @@
     "HTsPBu4uzxc",
     "9k9edq0qOWo",
     "GsiVnpAwU4U",
-    "iEF7yF-9oSo"
+    "iEF7yF-9oSo",
+    "Widla7VS5EM",
+    "63CD2gp68dA"
   ],
   "history": {
     "e93_3WKmFHg": {
@@ -1621,6 +1623,23 @@
       "facebook_uploaded": true,
       "processed_at": "2026-11-17T00:12:13.952641",
       "extra": {}
+    },
+    "Widla7VS5EM": {
+      "title": "Mẹ Ép Con Gái Mang Thai Lấy Chồng Vì 300 Nghìn Tệ, Nào Ngờ Cô Cưới Ngay CEO Tỷ Phú Giấu Thân Phận",
+      "youtube_uploaded": true,
+      "facebook_uploaded": true,
+      "processed_at": "2026-11-18T00:02:37.485491",
+      "extra": {}
+    },
+    "63CD2gp68dA": {
+      "title": "Cô Gái Nghèo Mang Thai Với CEO Quyền Lực, Nào Ngờ Anh Đề Nghị Cưới Cô Và Hứa Trả Tận 200 Nghìn Đô",
+      "youtube_uploaded": false,
+      "facebook_uploaded": false,
+      "processed_at": "2026-11-18T00:02:41.904048",
+      "extra": {
+        "skipped": true,
+        "reason": "Video dài 3h6m (quá giới hạn tối đa 3 tiếng)"
+      }
     }
   }
 }
