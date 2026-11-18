@@ -1626,10 +1626,13 @@
     },
     "Widla7VS5EM": {
       "title": "Mẹ Ép Con Gái Mang Thai Lấy Chồng Vì 300 Nghìn Tệ, Nào Ngờ Cô Cưới Ngay CEO Tỷ Phú Giấu Thân Phận",
-      "youtube_uploaded": true,
-      "facebook_uploaded": true,
+      "youtube_uploaded": false,
+      "facebook_uploaded": false,
       "processed_at": "2026-11-18T00:02:37.485491",
-      "extra": {}
+      "extra": {
+        "skipped": true,
+        "reason": "Trùng tiêu đề"
+      }
     },
     "63CD2gp68dA": {
       "title": "Cô Gái Nghèo Mang Thai Với CEO Quyền Lực, Nào Ngờ Anh Đề Nghị Cưới Cô Và Hứa Trả Tận 200 Nghìn Đô",
