@@ -49,8 +49,9 @@ jobs:
 
       - name: ⚙️ Cài đặt FFmpeg & Font chữ tiếng Việt
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg fonts-dejavu-core
+          while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do echo "Đang đợi dpkg giải phóng lock..."; sleep 2; done
+          sudo apt-get update -qq -o DPkg::Lock::Timeout=60
+          sudo apt-get install -y -qq -o DPkg::Lock::Timeout=60 ffmpeg fonts-dejavu-core
 
       - name: 📦 Cài đặt thư viện Python & Nâng cấp yt-dlp mới nhất
         run: |

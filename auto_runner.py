@@ -279,7 +279,7 @@ def run_headless_pipeline():
                 # LỚP 2: Kiểm tra RefID trực tiếp trên kênh đích YouTube (Chống trùng ngay cả khi mất file lịch sử)
                 if video_id in destination_ref_ids:
                     LogManager.log(f"Video [{video_title}] (ID: {video_id}) đã có RefID trên kênh đích YouTube -> Đánh dấu lịch sử và BỎ QUA.", "WARNING", "WORKER")
-                    HistoryManager.record_processed(video_id, video_title, yt_uploaded=True, fb_uploaded=True)
+                    HistoryManager.record_processed(video_id, video_title, yt_uploaded=False, fb_uploaded=False, extra={"skipped": True, "reason": "Already exists on destination channel"})
                     continue
 
                 # LỚP 3: Kiểm tra đối chiếu tiêu đề thông minh với danh sách video đã tồn tại trên kênh đích YouTube
@@ -288,7 +288,7 @@ def run_headless_pipeline():
                 for dt in destination_titles:
                     if is_title_duplicate(clean_test_title, dt) or is_title_duplicate(video_title, dt):
                         LogManager.log(f"Video [{video_title}] khớp tiêu đề với video đã có ('{dt}') -> Đánh dấu lịch sử và BỎ QUA.", "WARNING", "WORKER")
-                        HistoryManager.record_processed(video_id, video_title, yt_uploaded=True, fb_uploaded=True)
+                        HistoryManager.record_processed(video_id, video_title, yt_uploaded=False, fb_uploaded=False, extra={"skipped": True, "reason": f"Trùng tiêu đề với '{dt}'"})
                         is_duplicate = True
                         break
 
