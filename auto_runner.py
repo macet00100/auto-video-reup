@@ -19,6 +19,8 @@ from core.uploader_yt import YouTubeUploader
 from core.uploader_fb import FacebookUploader
 from core.history import HistoryManager
 from core.auto_reply import AutoReplyBot
+from core.china_crawler import ChinaCrawler
+from core.ai_reviewer import AIReviewer
 
 # Danh sách câu bình luận tự động tăng tương tác (Call-to-Action) sau khi đăng video
 YOUTUBE_COMMENTS = [
@@ -196,6 +198,220 @@ def get_channel_latest_videos(channel_id: str, cfg: Dict[str, Any], max_results:
 
     return []
 
+def run_china_raw_pipeline(cfg: Dict[str, Any], destination_titles: List[str], destination_ref_ids: set) -> bool:
+    """
+    Quy trình Phong cách B (AI Film Review / Recap):
+    1. Quét kho phim ngắn nội địa Trung Quốc trực tiếp qua API (độ trễ = 0, chưa có trên YouTube).
+    2. Lọc các bộ phim có chủ đề kịch tính/vả mặt/hào môn mới ra mắt hôm nay.
+    3. Tải poster gốc, dùng Gemini Flash tạo gói kịch bản review triệu view + mô tả Fair Use.
+    4. Tạo giọng đọc thuyết minh tiếng Việt AI bằng Edge-TTS / gTTS.
+    5. Thiết kế thumbnail điện ảnh giật gân (chữ vàng viền đen, poster sắc nét).
+    6. Tải M3U8 siêu tốc và render lách bản quyền kết hợp lồng tiếng thuyết minh.
+    7. Đăng lên YouTube và Facebook (HOÀN TOÀN KHÔNG TẠO SHORTS để bảo vệ kênh).
+    """
+    general_cfg = cfg.get("general", {})
+    yt_cfg = cfg.get("youtube", {})
+    fb_cfg = cfg.get("facebook", {})
+
+    LogManager.log(">>> BẮT ĐẦU CHẾ ĐỘ PHONG CÁCH B: QUÉT PHIM GỐC NỘI ĐỊA TRUNG QUỐC (ĐỘC QUYỀN 100%) <<<", "INFO", "CHINA_RAW")
+    candidates = ChinaCrawler.get_candidate_dramas(limit=25)
+    if not candidates:
+        LogManager.log("Không quét được bộ phim ngắn nào từ các trạm API Trung Quốc.", "WARNING", "CHINA_RAW")
+        return False
+
+    selected_drama = None
+    for cand in candidates:
+        unique_id = cand["id"]
+        raw_title = cand["raw_title"]
+
+        # Kiểm tra lịch sử
+        if HistoryManager.is_processed(unique_id):
+            continue
+
+        # Kiểm tra trùng lặp tiêu đề với các video đã có trên kênh đích
+        clean_cand = AIRewriter.clean_and_format_title(raw_title)
+        is_dup = False
+        for dt in destination_titles:
+            if is_title_duplicate(clean_cand, dt) or is_title_duplicate(raw_title, dt):
+                LogManager.log(f"Phim Trung Quốc [{raw_title}] khớp tiêu đề đã có ('{dt}') -> Bỏ qua.", "WARNING", "CHINA_RAW")
+                HistoryManager.record_processed(unique_id, raw_title, yt_uploaded=False, fb_uploaded=False, extra={"skipped": True, "reason": f"Trùng tiêu đề với '{dt}'"})
+                is_dup = True
+                break
+
+        if is_dup:
+            continue
+
+        selected_drama = cand
+        break
+
+    if not selected_drama:
+        LogManager.log("Toàn bộ phim mới quét được hôm nay đều đã được xử lý hoặc trùng lặp.", "INFO", "CHINA_RAW")
+        return False
+
+    LogManager.log(f"Đã chọn bộ phim độc quyền đắt giá nhất: '{selected_drama['raw_title']}' (Điểm kịch tính: {selected_drama['score']})", "SUCCESS", "CHINA_RAW")
+    return process_and_upload_china_drama(
+        drama_info=selected_drama,
+        upload_to_yt=yt_cfg.get("enabled", True),
+        upload_to_fb=fb_cfg.get("enabled", True),
+        cfg=cfg
+    )
+
+def process_and_upload_china_drama(
+    drama_info: Dict[str, Any],
+    upload_to_yt: bool,
+    upload_to_fb: bool,
+    cfg: Dict[str, Any]
+) -> bool:
+    task_id = f"cn_{int(time.time())}"
+    vod_id = drama_info["vod_id"]
+    raw_title = drama_info["raw_title"]
+    m3u8_url = drama_info["m3u8_url"]
+    poster_url = drama_info.get("poster_url", "")
+    unique_id = drama_info["id"]
+
+    general_cfg = cfg.get("general", {})
+    yt_cfg = cfg.get("youtube", {})
+    fb_cfg = cfg.get("facebook", {})
+    gemini_key = general_cfg.get("gemini_api_key") or os.getenv("GEMINI_API_KEY")
+
+    temp_files = []
+
+    try:
+        # BƯỚC 1: TẢI POSTER GỐC TỪ XƯỞNG PHIM
+        poster_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "storage", "temp", f"poster_{task_id}.jpg"))
+        has_poster = ChinaCrawler.download_poster(poster_url, poster_path)
+        if has_poster:
+            temp_files.append(poster_path)
+
+        # BƯỚC 2: AI REVIEW PACKAGE (Gemini Flash)
+        LogManager.log(f"[{task_id}] Đang phân tích kịch bản và sáng tạo nội dung review cho: '{raw_title}'...", "INFO", "AI_REVIEW")
+        review_pkg = AIReviewer.generate_review_package(raw_title, gemini_key)
+        new_title = review_pkg["vietnamese_title"]
+        hook_text = review_pkg["thumbnail_hook"]
+        sub_text = review_pkg["thumbnail_sub"]
+        voice_text = review_pkg.get("voice_intro", "")
+        yt_description = review_pkg["description"]
+
+        # BƯỚC 3: TẠO GIỌNG ĐỌC THUYẾT MINH TIẾNG VIỆT
+        voice_path = None
+        if voice_text:
+            voice_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "storage", "temp", f"voice_{task_id}.mp3"))
+            if AIReviewer.synthesize_voiceover(voice_text, voice_path):
+                temp_files.append(voice_path)
+            else:
+                voice_path = None
+
+        # BƯỚC 4: THIẾT KẾ THUMBNAIL ĐIỆN ẢNH GIẬT GÂN (Chuẩn 16:9 1280x720)
+        thumb_path = ThumbnailGenerator.create_review_thumbnail(
+            poster_path=poster_path if has_poster else None,
+            hook_text=hook_text,
+            sub_text=sub_text,
+            task_id=task_id
+        )
+
+        # BƯỚC 5: TẢI VIDEO M3U8 TRỰC TIẾP TỪ NGUỒN NỘI ĐỊA TRUNG QUỐC
+        raw_video = os.path.abspath(os.path.join(os.path.dirname(__file__), "storage", "temp", f"raw_{task_id}.mp4"))
+        temp_files.append(raw_video)
+        max_mins = general_cfg.get("max_duration_minutes", 180)
+        dl_ok = ChinaCrawler.download_m3u8_video(m3u8_url, raw_video, max_duration_seconds=int(max_mins * 60))
+        if not dl_ok:
+            LogManager.log(f"[{task_id}] Không thể tải video từ link M3U8.", "ERROR", "CHINA_RAW")
+            return False
+
+        # BƯỚC 6: RENDER FFMPEG LÁCH BẢN QUYỀN + MIX GIỌNG ĐỌC THUYẾT MINH
+        user_bypass = yt_cfg.get("bypass_rules", {})
+        combined_rules = {
+            "hflip": user_bypass.get("hflip", True),
+            "remove_logo": user_bypass.get("remove_logo", True),
+            "speed": float(user_bypass.get("speed", 1.05)),
+            "pitch_shift": user_bypass.get("pitch_shift", True),
+            "add_bgm": user_bypass.get("add_bgm", True),
+            "bgm_volume": float(user_bypass.get("bgm_volume", 0.12)),
+            "crop_percent": float(user_bypass.get("crop_percent", 4.5)),
+            "color_boost": user_bypass.get("color_boost", True),
+            "change_fps": user_bypass.get("change_fps", True),
+            "target_resolution": user_bypass.get("target_resolution", "720p"),
+            "cut_intro_seconds": float(user_bypass.get("cut_intro_seconds", 2.0)),
+            "preset": "veryfast",
+            "voiceover_path": voice_path
+        }
+
+        processed_video = VideoProcessor.process(
+            input_path=raw_video,
+            task_id=task_id,
+            rules=combined_rules
+        )
+        temp_files.append(processed_video)
+
+        # BƯỚC 7: XUẤT BẢN LÊN YOUTUBE & FACEBOOK
+        yt_success = False
+        fb_success = False
+        uploaded_yt_id = None
+        uploaded_fb_id = None
+
+        if upload_to_yt:
+            seo_tags = AIRewriter.get_recommended_tags(new_title)
+            LogManager.log(f"[{task_id}] Đang tải phim review độc quyền lên YouTube...", "INFO", "YOUTUBE")
+            try:
+                yt_res = YouTubeUploader.upload(
+                    video_path=processed_video,
+                    title=new_title,
+                    description=yt_description,
+                    thumbnail_path=thumb_path,
+                    config=yt_cfg.get("destination", {}),
+                    tags=seo_tags
+                )
+                yt_success = yt_res.get("success", False) if isinstance(yt_res, dict) else False
+                if yt_success:
+                    uploaded_yt_id = yt_res.get("video_id")
+                    LogManager.log(f"[{task_id}] Upload YouTube thành công! Video ID: {uploaded_yt_id}", "SUCCESS", "YOUTUBE")
+                    pin_comment = random.choice(YOUTUBE_COMMENTS)
+                    YouTubeUploader.add_comment(uploaded_yt_id, pin_comment, yt_cfg.get("destination", {}))
+            except Exception as e:
+                LogManager.log(f"[{task_id}] Lỗi khi upload YouTube: {e}", "ERROR", "YOUTUBE")
+
+        if upload_to_fb:
+            fb_desc = (
+                f"🎬 {new_title}\n\n"
+                f"🔥 Đón xem trọn bộ review phim ngắn Trung Quốc cực cuốn độc quyền tại fanpage!\n\n"
+                f"👉 Bấm Like và Theo Dõi Fanpage để cập nhật ngay những tập phim mới nhất mỗi ngày!\n\n"
+                f"#reviewphim #phimhay #phimngantrungquoc #tomtatphim #haomon #xuhuong"
+            )
+            LogManager.log(f"[{task_id}] Đang tải phim review lên Facebook...", "INFO", "FACEBOOK")
+            try:
+                fb_res = FacebookUploader.upload(
+                    video_path=processed_video,
+                    title=new_title,
+                    description=fb_desc,
+                    thumbnail_path=thumb_path,
+                    config=fb_cfg.get("destination", {})
+                )
+                fb_success = fb_res.get("success", False) if isinstance(fb_res, dict) else False
+                if fb_success:
+                    uploaded_fb_id = fb_res.get("video_id")
+                    LogManager.log(f"[{task_id}] Upload Facebook thành công! Video ID: {uploaded_fb_id}", "SUCCESS", "FACEBOOK")
+                    pin_comment = random.choice(FACEBOOK_COMMENTS)
+                    FacebookUploader.add_comment(uploaded_fb_id, pin_comment, fb_cfg.get("destination", {}))
+            except Exception as e:
+                LogManager.log(f"[{task_id}] Lỗi khi upload Facebook: {e}", "ERROR", "FACEBOOK")
+
+        # KHÔNG TẠO SHORTS (Shorts disabled)
+        # BƯỚC 8: LƯU LỊCH SỬ & ĐỒNG BỘ GIT
+        if yt_success or fb_success:
+            HistoryManager.record_processed(unique_id, new_title, yt_uploaded=yt_success, fb_uploaded=fb_success, extra={"raw_title": raw_title})
+            HistoryManager.sync_to_git(f"chore: save china review video {unique_id} [skip ci]")
+            LogManager.log(f"[{task_id}] Đã hoàn tất đăng video độc quyền và lưu trữ lịch sử!", "SUCCESS", "CHINA_RAW")
+            return True
+        else:
+            LogManager.log(f"[{task_id}] Cả hai nền tảng upload đều thất bại.", "ERROR", "CHINA_RAW")
+            return False
+
+    finally:
+        for p in temp_files:
+            if p and os.path.exists(p):
+                try: os.remove(p)
+                except Exception: pass
+
 def run_headless_pipeline():
     """
     Quy trình siêu tối ưu:
@@ -224,6 +440,14 @@ def run_headless_pipeline():
     destination_titles = destination_info.get("titles", [])
     destination_ref_ids = destination_info.get("ref_ids", set())
     LogManager.log(f"Đã nạp {len(destination_titles)} video và {len(destination_ref_ids)} RefID đã có trên kênh YouTube đích để kiểm tra trùng lặp.", "INFO", "WORKER")
+
+    # CHỌN CHẾ ĐỘ NGUỒN PHIM:
+    source_mode = general_cfg.get("source_mode", "china_raw")
+    if source_mode == "china_raw":
+        success = run_china_raw_pipeline(cfg, destination_titles, destination_ref_ids)
+        clean_all_temp_cache()
+        LogManager.log(f"=== HOÀN TẤT CHU KỲ PHONG CÁCH B (Thành công: {success}) ===", "SUCCESS" if success else "INFO", "WORKER")
+        return
 
     # Tập hợp danh sách các kênh nguồn duy nhất từ cấu hình YouTube và Facebook
     all_sources = []
@@ -498,94 +722,93 @@ def process_and_upload_simultaneously(
             except Exception as e:
                 LogManager.log(f"[{task_id}] Lỗi khi upload Facebook: {e}", "ERROR", "FACEBOOK")
 
-        # 5.3 TỰ ĐỘNG TẠO & ĐĂNG 2 VIDEO SHORTS / REELS KÉO SUB & VIEW CHO TẬP DÀI
+        # 5.3 TỰ ĐỘNG TẠO & ĐĂNG VIDEO SHORTS / REELS (Chỉ khi được bật trong cấu hình)
         shorts_list = []
-        try:
-            from core.shorts_generator import ShortsGenerator
-            shorts_list = ShortsGenerator.extract_shorts(
-                processed_video_path=processed_video,
-                base_title=new_title,
-                task_id=task_id,
-                count=2,
-                clip_duration=50,
-                gemini_key=gemini_key,
-                openai_key=openai_key
-            )
-            for s_idx, short_item in enumerate(shorts_list):
-                s_path = short_item["path"]
-                s_title = short_item["title"]
+        if general_cfg.get("enable_shorts", False):
+            try:
+                from core.shorts_generator import ShortsGenerator
+                shorts_list = ShortsGenerator.extract_shorts(
+                    processed_video_path=processed_video,
+                    base_title=new_title,
+                    task_id=task_id,
+                    count=2,
+                    clip_duration=50,
+                    gemini_key=gemini_key,
+                    openai_key=openai_key
+                )
+                for s_idx, short_item in enumerate(shorts_list):
+                    s_path = short_item["path"]
+                    s_title = short_item["title"]
 
-                # 1. Đăng lên YouTube Shorts
-                if upload_to_yt and uploaded_yt_id:
-                    short_yt_title = f"{s_title} #Shorts #ReviewPhim #PhimHay"
-                    if len(short_yt_title) > 100:
-                        short_yt_title = short_yt_title[:100].rsplit(' ', 1)[0]
-                    short_yt_desc = (
-                        f"🎬 {s_title}\n\n"
-                        f"#Shorts #ReviewPhim #PhimHay #XuHuong #Trending #PhimNgan"
-                    )
-                    short_tags = ["shorts", "reviewphim", "phimhay", "xuhuong", "phimngan", "trending"]
-                    s_yt_res = YouTubeUploader.upload(
-                        video_path=s_path,
-                        title=short_yt_title,
-                        description=short_yt_desc,
-                        thumbnail_path=None,
-                        config=yt_cfg.get("destination", {}),
-                        tags=short_tags
-                    )
-                    s_yt_id = s_yt_res.get("video_id") if isinstance(s_yt_res, dict) else None
-                    if s_yt_id:
-                        LogManager.log(f"[{task_id}] Đã đăng YouTube Short #{s_idx+1}: {s_yt_id}", "SUCCESS", "SHORTS")
-                        # Ghim bình luận link video dài và hướng dẫn bấm vào kênh (vì YouTube khóa click link trên Shorts)
-                        if s_idx == 0:
-                            pin_comment = (
-                                f"🎬 XEM TRỌN BỘ FULL TẬP DÀI:\n"
-                                f"👉 Bấm vào kênh @CoolMeoPhim để xem trọn bộ tập dài mới nhất nhé!\n"
-                                f"🔗 Link: https://www.youtube.com/watch?v={uploaded_yt_id}"
-                            )
-                        else:
-                            pin_comment = (
-                                f"🎬 Xem trọn bộ diễn biến tập dài:\n"
-                                f"👉 Bấm vào kênh @CoolMeoPhim để xem video dài ở đầu trang nhé!\n"
-                                f"🔗 Link: https://www.youtube.com/watch?v={uploaded_yt_id}"
-                            )
-                        YouTubeUploader.add_comment(s_yt_id, pin_comment, yt_cfg.get("destination", {}))
-
-                # 2. Đăng lên Facebook Reels
-                if upload_to_fb:
-                    fb_dest_reel = dict(fb_cfg.get("destination", {}))
-                    fb_dest_reel["post_as_reel"] = True
-                    short_fb_desc = (
-                        f"🎬 {s_title}\n\n"
-                        f"#reels #reviewphim #xuhuong #phimhay #phimngan"
-                    )
-                    s_fb_res = FacebookUploader.upload(
-                        video_path=s_path,
-                        title=s_title,
-                        description=short_fb_desc,
-                        thumbnail_path=None,
-                        config=fb_dest_reel
-                    )
-                    s_fb_id = s_fb_res.get("video_id") if isinstance(s_fb_res, dict) else None
-                    if s_fb_id:
-                        LogManager.log(f"[{task_id}] Đã đăng Facebook Reel #{s_idx+1}: {s_fb_id}", "SUCCESS", "SHORTS")
-                        # Đăng bình luận riêng kèm link Facebook video dài dưới Reel (đa dạng hóa câu chữ để tránh spam trùng lặp)
-                        if uploaded_fb_id:
+                    # 1. Đăng lên YouTube Shorts
+                    if upload_to_yt and uploaded_yt_id:
+                        short_yt_title = f"{s_title} #Shorts #ReviewPhim #PhimHay"
+                        if len(short_yt_title) > 100:
+                            short_yt_title = short_yt_title[:100].rsplit(' ', 1)[0]
+                        short_yt_desc = (
+                            f"🎬 {s_title}\n\n"
+                            f"#Shorts #ReviewPhim #PhimHay #XuHuong #Trending #PhimNgan"
+                        )
+                        short_tags = ["shorts", "reviewphim", "phimhay", "xuhuong", "phimngan", "trending"]
+                        s_yt_res = YouTubeUploader.upload(
+                            video_path=s_path,
+                            title=short_yt_title,
+                            description=short_yt_desc,
+                            thumbnail_path=None,
+                            config=yt_cfg.get("destination", {}),
+                            tags=short_tags
+                        )
+                        s_yt_id = s_yt_res.get("video_id") if isinstance(s_yt_res, dict) else None
+                        if s_yt_id:
+                            LogManager.log(f"[{task_id}] Đã đăng YouTube Short #{s_idx+1}: {s_yt_id}", "SUCCESS", "SHORTS")
                             if s_idx == 0:
-                                fb_pin_comment = f"👉 XEM TRỌN BỘ TẬP DÀI TẠI ĐÂY: https://www.facebook.com/watch/?v={uploaded_fb_id}"
+                                pin_comment = (
+                                    f"🎬 XEM TRỌN BỘ FULL TẬP DÀI:\n"
+                                    f"👉 Bấm vào kênh @CoolMeoPhim để xem trọn bộ tập dài mới nhất nhé!\n"
+                                    f"🔗 Link: https://www.youtube.com/watch?v={uploaded_yt_id}"
+                                )
                             else:
-                                fb_pin_comment = f"🎬 Xem trọn bộ diễn biến tập dài tại đây: https://www.facebook.com/watch/?v={uploaded_fb_id}"
-                            FacebookUploader.add_comment(s_fb_id, fb_pin_comment, fb_cfg.get("destination", {}))
-        except Exception as ex_shorts:
-            LogManager.log(f"[{task_id}] Lỗi trong tiến trình tạo Shorts: {ex_shorts}", "WARNING", "SHORTS")
-        finally:
-            for s_item in shorts_list:
-                sp = s_item.get("path")
-                if sp and os.path.exists(sp):
-                    try:
-                        os.remove(sp)
-                    except Exception:
-                        pass
+                                pin_comment = (
+                                    f"🎬 Xem trọn bộ diễn biến tập dài:\n"
+                                    f"👉 Bấm vào kênh @CoolMeoPhim để xem video dài ở đầu trang nhé!\n"
+                                    f"🔗 Link: https://www.youtube.com/watch?v={uploaded_yt_id}"
+                                )
+                            YouTubeUploader.add_comment(s_yt_id, pin_comment, yt_cfg.get("destination", {}))
+
+                    # 2. Đăng lên Facebook Reels
+                    if upload_to_fb:
+                        fb_dest_reel = dict(fb_cfg.get("destination", {}))
+                        fb_dest_reel["post_as_reel"] = True
+                        short_fb_desc = (
+                            f"🎬 {s_title}\n\n"
+                            f"#reels #reviewphim #xuhuong #phimhay #phimngan"
+                        )
+                        s_fb_res = FacebookUploader.upload(
+                            video_path=s_path,
+                            title=s_title,
+                            description=short_fb_desc,
+                            thumbnail_path=None,
+                            config=fb_dest_reel
+                        )
+                        s_fb_id = s_fb_res.get("video_id") if isinstance(s_fb_res, dict) else None
+                        if s_fb_id:
+                            LogManager.log(f"[{task_id}] Đã đăng Facebook Reel #{s_idx+1}: {s_fb_id}", "SUCCESS", "SHORTS")
+                            if uploaded_fb_id:
+                                if s_idx == 0:
+                                    fb_pin_comment = f"👉 XEM TRỌN BỘ TẬP DÀI TẠI ĐÂY: https://www.facebook.com/watch/?v={uploaded_fb_id}"
+                                else:
+                                    fb_pin_comment = f"🎬 Xem trọn bộ diễn biến tập dài tại đây: https://www.facebook.com/watch/?v={uploaded_fb_id}"
+                                FacebookUploader.add_comment(s_fb_id, fb_pin_comment, fb_cfg.get("destination", {}))
+            except Exception as ex_shorts:
+                LogManager.log(f"[{task_id}] Lỗi trong tiến trình tạo Shorts: {ex_shorts}", "WARNING", "SHORTS")
+            finally:
+                for s_item in shorts_list:
+                    sp = s_item.get("path")
+                    if sp and os.path.exists(sp):
+                        try:
+                            os.remove(sp)
+                        except Exception:
+                            pass
 
         if yt_success or fb_success:
             # Lưu ngay vào lịch sử và push Git ngay lập tức

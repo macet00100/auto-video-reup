@@ -263,8 +263,41 @@ class VideoProcessor:
         bgm_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "storage", "assets", "ambient_bgm.mp3"))
         use_bgm = add_bgm and has_audio and os.path.exists(bgm_file)
 
-        if use_bgm:
-            # Trộn âm thanh giọng nói đã biến đổi cao độ với nhạc nền ngầm (BGM) để triệt tiêu hoàn toàn dấu vân tay âm thanh
+        voiceover_file = rules.get("voiceover_path")
+        use_voiceover = bool(voiceover_file and os.path.exists(voiceover_file) and os.path.getsize(voiceover_file) > 1000)
+
+        # XÂY DỰNG LỆNH FFMPEG MIX ÂM THANH & LÁCH BẢN QUYỀN
+        if use_bgm and use_voiceover:
+            # 3 luồng âm thanh: Tiếng gốc hạ âm lượng + Nhạc nền + Giọng thuyết minh tiếng Việt AI nổi bật
+            fc_str = (
+                f"[0:v]{vf_str}[vout];"
+                f"[0:a]{af_str},volume=0.35[a0];"
+                f"[1:a]volume={bgm_volume:.3f}[a1];"
+                f"[2:a]volume=1.4[a2];"
+                f"[a0][a1][a2]amix=inputs=3:duration=first:dropout_transition=2[aout]"
+            )
+            cmd = ["ffmpeg", "-y"]
+            if cut_intro_seconds > 0:
+                cmd.extend(["-ss", str(cut_intro_seconds)])
+            cmd.extend([
+                "-i", input_path,
+                "-stream_loop", "-1", "-i", bgm_file,
+                "-i", voiceover_file,
+                "-filter_complex", fc_str,
+                "-map", "[vout]",
+                "-map", "[aout]",
+                "-c:v", "libx264",
+                "-preset", preset,
+                "-crf", "23",
+                "-r", "30",
+                "-c:a", "aac",
+                "-b:a", "192k",
+                "-ar", "48000",
+                "-threads", threads,
+                output_path
+            ])
+        elif use_bgm:
+            # Trộn âm thanh gốc với nhạc nền ngầm (BGM)
             fc_str = f"[0:v]{vf_str}[vout];[0:a]{af_str}[a0];[1:a]volume={bgm_volume:.3f}[a1];[a0][a1]amix=inputs=2:duration=first:dropout_transition=2[aout]"
             cmd = ["ffmpeg", "-y"]
             if cut_intro_seconds > 0:
@@ -272,6 +305,33 @@ class VideoProcessor:
             cmd.extend([
                 "-i", input_path,
                 "-stream_loop", "-1", "-i", bgm_file,
+                "-filter_complex", fc_str,
+                "-map", "[vout]",
+                "-map", "[aout]",
+                "-c:v", "libx264",
+                "-preset", preset,
+                "-crf", "23",
+                "-r", "30",
+                "-c:a", "aac",
+                "-b:a", "192k",
+                "-ar", "48000",
+                "-threads", threads,
+                output_path
+            ])
+        elif use_voiceover:
+            # Trộn âm thanh gốc với giọng thuyết minh tiếng Việt AI
+            fc_str = (
+                f"[0:v]{vf_str}[vout];"
+                f"[0:a]{af_str},volume=0.35[a0];"
+                f"[1:a]volume=1.4[a1];"
+                f"[a0][a1]amix=inputs=2:duration=first:dropout_transition=2[aout]"
+            )
+            cmd = ["ffmpeg", "-y"]
+            if cut_intro_seconds > 0:
+                cmd.extend(["-ss", str(cut_intro_seconds)])
+            cmd.extend([
+                "-i", input_path,
+                "-i", voiceover_file,
                 "-filter_complex", fc_str,
                 "-map", "[vout]",
                 "-map", "[aout]",
