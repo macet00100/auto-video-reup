@@ -29,18 +29,6 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: 🛡️ Kích hoạt Cloudflare WARP (Bypass chặn IP Datacenter của YouTube)
-        uses: fscarmen/warp-on-actions@v1.4
-        timeout-minutes: 3
-        continue-on-error: true
-        with:
-          stack: dual
-          mode: client
-
-      - name: 🌐 Kiểm tra IP kết nối Cloudflare
-        run: |
-          curl -s https://www.cloudflare.com/cdn-cgi/trace | grep -E "ip=|loc=" || true
-
       - name: 🐍 Cài đặt Python 3.11
         uses: actions/setup-python@v5
         with:
@@ -49,9 +37,7 @@ jobs:
 
       - name: ⚙️ Cài đặt FFmpeg & Font chữ tiếng Việt
         run: |
-          while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do echo "Đang đợi dpkg giải phóng lock..."; sleep 2; done
-          sudo apt-get update -qq -o DPkg::Lock::Timeout=60
-          sudo apt-get install -y -qq -o DPkg::Lock::Timeout=60 ffmpeg fonts-dejavu-core
+          command -v ffmpeg || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fonts-dejavu-core)
 
       - name: 📦 Cài đặt thư viện Python & Nâng cấp yt-dlp mới nhất
         run: |

@@ -139,6 +139,10 @@ class ChinaCrawler:
         Bóc tách Master Playlist (.m3u8) để lấy direct stream m3u8 chuẩn,
         tránh triệt để lỗi 404 relative path của FFmpeg khi gặp CDN Trung Quốc.
         """
+        if "/lzv" in m3u8_url and m3u8_url.endswith("/index.m3u8"):
+            # Chuẩn CDN Lượng Tử (Quantum): stream 1080p luôn nằm tại 2000k/hls/index.m3u8
+            return m3u8_url.replace("/index.m3u8", "/2000k/hls/index.m3u8")
+
         try:
             req = urllib.request.Request(
                 m3u8_url,
@@ -157,8 +161,8 @@ class ChinaCrawler:
                             return f"{parsed.scheme}://{parsed.netloc}{line}"
                         else:
                             return f"{base_url}/{line}"
-        except Exception:
-            pass
+        except Exception as e:
+            LogManager.log(f"Lỗi khi phân giải m3u8 stream: {e}", "WARNING", "CRAWLER")
         return m3u8_url
 
     @staticmethod
