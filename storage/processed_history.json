@@ -204,7 +204,8 @@
     "cn_98623",
     "cn_167255",
     "cn_167254",
-    "cn_167253"
+    "cn_167253",
+    "cn_99077"
   ],
   "history": {
     "e93_3WKmFHg": {
@@ -1742,6 +1743,17 @@
         "scheduled_vn": "17:30 ngày 21/11/2026",
         "deleted": true,
         "reason": "Deleted due to defect (voice was interrupted) and title truncation"
+      }
+    },
+    "cn_99077": {
+      "title": "Review Phim Xuyên Không Nữ Nhân Cực Sốc Vạch Trần Âm Mưu Triều Đình Hấp Dẫn",
+      "youtube_uploaded": true,
+      "facebook_uploaded": true,
+      "processed_at": "2026-11-21T03:24:29.125318",
+      "extra": {
+        "raw_title": "穿越侍郎千金，上朝心声全网公开第三季",
+        "scheduled_utc": "2026-11-20T21:23:11.000Z",
+        "scheduled_vn": "04:23 ngày 21/11/2026"
       }
     }
   }
