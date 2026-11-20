@@ -1,105 +1,105 @@
 {
-    "general": {
-        "source_mode": "china_raw",
-        "review_mode": "condensed_recap",
-        "target_recap_minutes": 20,
-        "enable_shorts": false,
-        "schedule_mode": "scheduled",
-        "gemini_api_key": "",
-        "openai_api_key": "",
-        "scheduler_enabled": true,
-        "scheduler_interval_minutes": 15,
-        "max_concurrent_tasks": 1,
-        "min_duration_minutes": 30,
-        "max_duration_minutes": 180,
-        "clean_temp_after_upload": true,
-        "proxy": "",
-        "max_daily_uploads": 3
+  "general": {
+    "source_mode": "china_raw",
+    "review_mode": "condensed_recap",
+    "target_recap_minutes": 10,
+    "enable_shorts": false,
+    "schedule_mode": "scheduled",
+    "gemini_api_key": "",
+    "openai_api_key": "",
+    "scheduler_enabled": true,
+    "scheduler_interval_minutes": 15,
+    "max_concurrent_tasks": 1,
+    "min_duration_minutes": 30,
+    "max_duration_minutes": 180,
+    "clean_temp_after_upload": true,
+    "proxy": "",
+    "max_daily_uploads": 3
+  },
+  "youtube": {
+    "enabled": true,
+    "min_duration_minutes": 30,
+    "max_duration_minutes": 180,
+    "sources": [
+      {
+        "id": "UCyEd4S5GDGQ5xb0-Sb5HXrg",
+        "name": "Triệu Vy Review",
+        "url": "https://www.youtube.com/channel/UCyEd4S5GDGQ5xb0-Sb5HXrg",
+        "last_video_id": "",
+        "enabled": true
+      }
+    ],
+    "destination": {
+      "auth_mode": "api",
+      "privacy_status": "public",
+      "category_id": "24",
+      "client_id": "",
+      "client_secret": "",
+      "access_token": "",
+      "refresh_token": ""
     },
-    "youtube": {
-        "enabled": true,
-        "min_duration_minutes": 30,
-        "max_duration_minutes": 180,
-        "sources": [
-            {
-                "id": "UCyEd4S5GDGQ5xb0-Sb5HXrg",
-                "name": "Triệu Vy Review",
-                "url": "https://www.youtube.com/channel/UCyEd4S5GDGQ5xb0-Sb5HXrg",
-                "last_video_id": "",
-                "enabled": true
-            }
-        ],
-        "destination": {
-            "auth_mode": "api",
-            "privacy_status": "public",
-            "category_id": "24",
-            "client_id": "",
-            "client_secret": "",
-            "access_token": "",
-            "refresh_token": ""
-        },
-        "bypass_rules": {
-            "hflip": true,
-            "remove_logo": true,
-            "logo_position": "both-top",
-            "cut_intro_seconds": 2.5,
-            "speed": 1.05,
-            "pitch_shift": true,
-            "crop_percent": 4.5,
-            "blur_border": false,
-            "color_boost": true,
-            "change_fps": true,
-            "target_resolution": "720p",
-            "add_bgm": true,
-            "bgm_volume": 0.12
-        },
-        "metadata_rules": {
-            "rewrite_title": true,
-            "title_prefix": "",
-            "title_suffix": "",
-            "generate_thumbnail": true,
-            "thumbnail_style": "modern_yellow"
-        }
+    "bypass_rules": {
+      "hflip": true,
+      "remove_logo": true,
+      "logo_position": "both-top",
+      "cut_intro_seconds": 2.5,
+      "speed": 1.05,
+      "pitch_shift": true,
+      "crop_percent": 4.5,
+      "blur_border": false,
+      "color_boost": true,
+      "change_fps": true,
+      "target_resolution": "720p",
+      "add_bgm": true,
+      "bgm_volume": 0.12
     },
-    "facebook": {
-        "enabled": true,
-        "min_duration_minutes": 30,
-        "max_duration_minutes": 180,
-        "sources": [
-            {
-                "id": "UCyEd4S5GDGQ5xb0-Sb5HXrg",
-                "name": "Triệu Vy Review",
-                "url": "https://www.youtube.com/channel/UCyEd4S5GDGQ5xb0-Sb5HXrg",
-                "last_video_id": "",
-                "enabled": true
-            }
-        ],
-        "destination": {
-            "page_id": "",
-            "access_token": "",
-            "post_as_reel": false
-        },
-        "bypass_rules": {
-            "hflip": true,
-            "remove_logo": true,
-            "logo_position": "both-top",
-            "cut_intro_seconds": 2.5,
-            "speed": 1.05,
-            "pitch_shift": true,
-            "crop_percent": 4.5,
-            "blur_border": false,
-            "color_boost": true,
-            "change_fps": true,
-            "target_resolution": "720p",
-            "add_bgm": true,
-            "bgm_volume": 0.12
-        },
-        "metadata_rules": {
-            "rewrite_title": true,
-            "title_prefix": "",
-            "title_suffix": "",
-            "generate_thumbnail": true,
-            "thumbnail_style": "gradient_blue"
-        }
+    "metadata_rules": {
+      "rewrite_title": true,
+      "title_prefix": "",
+      "title_suffix": "",
+      "generate_thumbnail": true,
+      "thumbnail_style": "modern_yellow"
     }
+  },
+  "facebook": {
+    "enabled": true,
+    "min_duration_minutes": 30,
+    "max_duration_minutes": 180,
+    "sources": [
+      {
+        "id": "UCyEd4S5GDGQ5xb0-Sb5HXrg",
+        "name": "Triệu Vy Review",
+        "url": "https://www.youtube.com/channel/UCyEd4S5GDGQ5xb0-Sb5HXrg",
+        "last_video_id": "",
+        "enabled": true
+      }
+    ],
+    "destination": {
+      "page_id": "",
+      "access_token": "",
+      "post_as_reel": false
+    },
+    "bypass_rules": {
+      "hflip": true,
+      "remove_logo": true,
+      "logo_position": "both-top",
+      "cut_intro_seconds": 2.5,
+      "speed": 1.05,
+      "pitch_shift": true,
+      "crop_percent": 4.5,
+      "blur_border": false,
+      "color_boost": true,
+      "change_fps": true,
+      "target_resolution": "720p",
+      "add_bgm": true,
+      "bgm_volume": 0.12
+    },
+    "metadata_rules": {
+      "rewrite_title": true,
+      "title_prefix": "",
+      "title_suffix": "",
+      "generate_thumbnail": true,
+      "thumbnail_style": "gradient_blue"
+    }
+  }
 }

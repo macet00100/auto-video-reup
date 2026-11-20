@@ -426,19 +426,17 @@ class VideoProcessor:
         if mute_original_audio:
             LogManager.log(f"[{task_id}] Đã loại bỏ 100% tiếng Trung gốc -> Video chỉ phát nhạc nền điện ảnh và giọng thuyết minh tiếng Việt.", "INFO", "AUDIO")
             if bgm_idx is not None and voice_idx is not None:
-                if outro_start < 999990.0 and outro_start > d_intro:
-                    bgm_duck = f"volume=enable='not(between(t\\,{d_intro:.1f}\\,{outro_start:.1f}))':volume=0.18,volume=enable='between(t\\,{d_intro:.1f}\\,{outro_start:.1f})':volume=0.45"
-                else:
-                    bgm_duck = f"volume=enable='lte(t\\,{d_intro:.1f})':volume=0.18,volume=enable='gt(t\\,{d_intro:.1f})':volume=0.45"
+                # Dùng sidechain compressor: Khi thuyết minh nói, BGM tự động hạ âm lượng mượt mà, khi thuyết minh dừng, BGM tăng trở lại
                 a_fc = (
-                    f"[{bgm_idx}:a]{bgm_duck}[abgm];"
-                    f"[{voice_idx}:a]volume=1.35[avoice];"
-                    f"[abgm][avoice]amix=inputs=2:duration=first:dropout_transition=2[aout]"
+                    f"[{bgm_idx}:a]volume=0.45[abgm_raw];"
+                    f"[{voice_idx}:a]volume=1.4[avoice];"
+                    f"[abgm_raw][avoice]sidechaincompress=threshold=0.08:ratio=5:attack=80:release=450[abgm_ducked];"
+                    f"[abgm_ducked][avoice]amix=inputs=2:duration=first:dropout_transition=2[aout]"
                 )
             elif bgm_idx is not None:
                 a_fc = f"[{bgm_idx}:a]volume=0.45[aout]"
             elif voice_idx is not None:
-                a_fc = f"[{voice_idx}:a]volume=1.35[aout]"
+                a_fc = f"[{voice_idx}:a]volume=1.4[aout]"
             else:
                 a_fc = "aevalsrc=0:d=10[aout]"
         else:

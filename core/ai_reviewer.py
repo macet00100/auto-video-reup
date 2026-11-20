@@ -1,8 +1,11 @@
 import os
 import re
 import json
+import time
+import asyncio
 import subprocess
 import requests
+import edge_tts
 from typing import Dict, Any, Optional, List
 from core.task_queue import LogManager
 
@@ -82,8 +85,13 @@ class AIReviewer:
         safe_vi_title = f"Review Phim {vi_title_clean}"
 
         default_intro = (
-            f"Chào mừng cả nhà đã quay trở lại với kênh Cool Mèo Phim! Ngày hôm nay, chúng ta sẽ cùng theo dõi bộ phim vi kịch cực kỳ hấp dẫn và kịch tính mang tên {vi_title_clean}. "
-            f"Liệu nhân vật chính sẽ vượt qua những âm mưu hãm hại và lật ngược tình thế như thế nào? Mời các bạn cùng theo dõi diễn biến gay cấn của câu chuyện ngay sau đây!"
+            f"Chào mừng cả nhà đã quay trở lại với kênh Cool Mèo Phim! Ngày hôm nay, chúng ta sẽ cùng theo dõi bộ phim kịch tính mang tên {vi_title_clean}. "
+            f"Liệu nhân vật chính sẽ vượt qua những âm mưu hãm hại, vạch trần kẻ xảo quyệt và lật ngược tình thế như thế nào? Cùng theo dõi ngay sau đây!"
+        )
+        default_mid = (
+            f"Càng về sau, những mưu mô tính toán và bộ mặt xảo quyệt của kẻ bội bạc càng lộ rõ. "
+            f"Thế nhưng chúng không thể ngờ rằng, mọi toan tính bẩn thỉu đó đều đã nằm trong tầm kiểm soát. "
+            f"Thời khắc vạch trần sự thật và màn phản đòn vả mặt thích đáng chuẩn bị bắt đầu!"
         )
         default_outro = (
             "Hành trình của bộ phim hôm nay đến đây là kết thúc rồi! Các bạn thấy cái kết này đã đủ hả hê chưa? "
@@ -96,6 +104,7 @@ class AIReviewer:
             "thumbnail_hook": "VẢ MẶT KẺ ÁC",
             "thumbnail_sub": "LỘ THÂN PHẬN",
             "voice_intro": default_intro,
+            "voice_mid": default_mid,
             "voice_outro": default_outro,
             "description": "",
             "tags": ["reviewphim", "phimngan", "phimhay", "tomtatphim", "haomon", "tongtai", "xuhuong"]
@@ -105,21 +114,23 @@ class AIReviewer:
             try:
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key={gemini_key.strip()}"
                 prompt = (
-                    f"Bạn là biên tập viên review phim vi kịch Trung Quốc triệu view trên YouTube (kênh @CoolMeoPhim phong cách giống Triệu Vy Review, Gấu Phim).\n"
+                    f"Bạn là biên tập viên review phim vi kịch Trung Quốc triệu view trên YouTube (kênh @CoolMeoPhim phong cách cuốn hút, dồn dập, gay cấn).\n"
                     f"Bộ phim gốc Trung Quốc có tên: '{chinese_title}' (tạm dịch nghĩa tiếng Việt: '{translated_title}').\n\n"
                     f"Hãy sáng tạo một gói nội dung review phim hoàn chỉnh bằng tiếng Việt:\n"
                     f"1. vietnamese_title: Tiêu đề giật gân, cuốn hút, chuẩn phong cách review phim. BẮT BUỘC bắt đầu bằng 'Review Phim ' (tuyệt đối KHÔNG dùng ký tự gạch đứng '|', KHÔNG dùng hai chấm ':', và KHÔNG dùng 'Full Trọn Bộ'), độ dài từ 65 đến 95 ký tự.\n"
                     f"2. thumbnail_hook: Đúng 1 cụm từ 3-5 chữ in hoa cực sốc để đặt lên ảnh bìa (ví dụ: VỢ CŨ PHẢN BỘI, ÉP NÀNG DÂU PHÁ THAI, ĐẠI GIA GIẢ ĂN MÀY, VẢ MẶT TIỂU TAM).\n"
                     f"3. thumbnail_sub: Cụm từ phụ 3-4 chữ in hoa (ví dụ: CÁI KẾT HẢ HÊ, LỘ THÂN PHẬN, CẢ NHÀ QUỲ LẠY).\n"
-                    f"4. voice_intro: Đoạn văn thuyết minh dẫn chuyện mở đầu cực kỳ gay cấn, lôi cuốn, văn phong kích thích tò mò tột độ dài khoảng 60-90 từ để đọc lồng tiếng trong 25-35 giây đầu của video. LƯU Ý BẮT BUỘC: TUYỆT ĐỐI KHÔNG kêu gọi Like hay Đăng ký kênh ở đoạn mở đầu này để khán giả tập trung vào cốt truyện.\n"
-                    f"5. voice_outro: Đoạn thuyết minh kết phim 35-50 từ chốt lại cái kết hả hê, VÀ ĐẨY TOÀN BỘ KÊU GỌI HÀNH ĐỘNG (CTA) BẤM LIKE VÀ ĐĂNG KÝ KÊNH RA ĐÂY: 'Cái kết của bộ phim hôm nay thật hả hê đúng không các bạn! Nếu thấy hay thì đừng quên nhấn Like và bấm Đăng ký kênh Cool Mèo Phim, bật chuông thông báo để cùng đón xem những tập phim kịch tính tiếp theo nhé. Cảm ơn cả nhà rất nhiều!'\n"
-                    f"6. summary_hook: 2-3 câu tóm tắt mồi câu hấp dẫn cho phần đầu mô tả video.\n\n"
+                    f"4. voice_intro: Đoạn văn thuyết minh dẫn chuyện mở đầu cực kỳ gay cấn, lôi cuốn, giọng văn kích thích tò mò tột độ dài khoảng 80-110 từ để đọc lồng tiếng trong 35-45 giây đầu của video. LƯU Ý BẮT BUỘC: TUYỆT ĐỐI KHÔNG kêu gọi Like hay Đăng ký kênh ở đoạn mở đầu này để khán giả tập trung vào cốt truyện.\n"
+                    f"5. voice_mid: Đoạn thuyết minh cao trào giữa phim khoảng 70-100 từ đẩy kịch tính lên đỉnh điểm khi các âm mưu bị phơi bày và màn phản đòn vả mặt sắp diễn ra.\n"
+                    f"6. voice_outro: Đoạn thuyết minh kết phim 40-60 từ chốt lại cái kết hả hê, VÀ ĐẨY TOÀN BỘ KÊU GỌI HÀNH ĐỘNG (CTA) BẤM LIKE VÀ ĐĂNG KÝ KÊNH RA ĐÂY: 'Cái kết của bộ phim hôm nay thật hả hê đúng không các bạn! Nếu thấy hay thì đừng quên nhấn Like và bấm Đăng ký kênh Cool Mèo Phim, bật chuông thông báo để cùng đón xem những tập phim kịch tính tiếp theo nhé. Cảm ơn cả nhà rất nhiều!'\n"
+                    f"7. summary_hook: 2-3 câu tóm tắt mồi câu hấp dẫn cho phần đầu mô tả video.\n\n"
                     f"Trả về kết quả dưới dạng JSON:\n"
                     f"{{\n"
                     f'  "vietnamese_title": "...",\n'
                     f'  "thumbnail_hook": "...",\n'
                     f'  "thumbnail_sub": "...",\n'
                     f'  "voice_intro": "...",\n'
+                    f'  "voice_mid": "...",\n'
                     f'  "voice_outro": "...",\n'
                     f'  "summary_hook": "..."\n'
                     f"}}\n"
@@ -145,7 +156,7 @@ class AIReviewer:
                             parsed = json.loads(text_resp)
                         except Exception:
                             # Cứu hộ bằng Regex trích xuất từng trường nếu json.loads gặp lỗi ký tự
-                            for key in ["vietnamese_title", "thumbnail_hook", "thumbnail_sub", "voice_intro", "voice_outro", "summary_hook"]:
+                            for key in ["vietnamese_title", "thumbnail_hook", "thumbnail_sub", "voice_intro", "voice_mid", "voice_outro", "summary_hook"]:
                                 m = re.search(r'"' + key + r'"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"', text_resp)
                                 if m:
                                     parsed[key] = m.group(1).encode('utf-8').decode('unicode_escape', errors='ignore')
@@ -165,6 +176,8 @@ class AIReviewer:
                             v_in = parsed["voice_intro"].replace('"', '').strip()
                             v_in = re.sub(r'(đừng quên|nhớ|hãy)?\s*(bấm|nhấn)?\s*(like|đăng ký|sub|theo dõi)[^.!?]*[.!?]', '', v_in, flags=re.IGNORECASE).strip()
                             package["voice_intro"] = v_in or default_intro
+                        if parsed.get("voice_mid"):
+                            package["voice_mid"] = parsed["voice_mid"].replace('"', '').strip() or default_mid
                         if parsed.get("voice_outro"):
                             package["voice_outro"] = parsed["voice_outro"].replace('"', '').strip()
 
@@ -194,43 +207,43 @@ class AIReviewer:
     def synthesize_voiceover(
         text: str,
         output_path: str,
-        voice: str = "vi-VN-HoaiMyNeural"
+        voice: str = "vi-VN-NamMinhNeural",
+        rate: str = "+20%"
     ) -> bool:
         """
         Tạo file âm thanh thuyết minh tiếng Việt:
-        Ưu tiên Edge-TTS (giọng Hoài My truyền cảm); nếu mạng chập chờn sẽ tự động chuyển sang gTTS.
+        Sử dụng Edge-TTS (mặc định giọng nam NamMinhNeural chuyên nghiệp, tốc độ +20% dồn dập, cảm xúc).
+        Dự phòng tự động đổi sang giọng nữ HoaiMyNeural nếu giọng nam gặp sự cố.
+        Tuyệt đối không dùng gTTS để giữ trọn vẹn cảm xúc và chất lượng phòng thu.
         """
         if not text or not text.strip():
             return False
 
         clean_text = text.replace('"', '').replace('\n', ' ').strip()
-        LogManager.log(f"Đang tạo giọng đọc thuyết minh AI...", "INFO", "TTS")
+        # Chuẩn hóa tên kênh để tránh xung đột tokenizer
+        clean_text = re.sub(r'@?CoolMeoPhim', 'Cool Mèo Phim', clean_text, flags=re.IGNORECASE)
+        clean_text = clean_text.replace("Cool Mèo Phim", "kênh Mèo review phim")
 
-        # CÁCH 1: Thử Edge-TTS
-        try:
-            cmd = [
-                "edge-tts",
-                "--voice", voice,
-                "--text", clean_text,
-                "--write-media", output_path
-            ]
-            res = subprocess.run(cmd, capture_output=True, text=True, timeout=25)
-            if res.returncode == 0 and os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
-                LogManager.log(f"Edge-TTS tạo giọng đọc thành công! Size: {os.path.getsize(output_path)} bytes", "SUCCESS", "TTS")
-                return True
-        except Exception:
-            pass
+        LogManager.log(f"Đang tạo giọng đọc thuyết minh AI ({voice}, tốc độ {rate})...", "INFO", "TTS")
 
-        # CÁCH 2: Dự phòng bằng gTTS (Google Translate TTS - 100% không bao giờ lỗi)
-        try:
-            from gtts import gTTS
-            tts = gTTS(text=clean_text, lang='vi')
-            tts.save(output_path)
-            if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
-                LogManager.log(f"gTTS tạo giọng đọc dự phòng thành công! Size: {os.path.getsize(output_path)} bytes", "SUCCESS", "TTS")
-                return True
-        except Exception as e_gtts:
-            LogManager.log(f"Lỗi khi tạo TTS dự phòng: {e_gtts}", "ERROR", "TTS")
+        async def _save_stream(v, r):
+            communicate = edge_tts.Communicate(clean_text, v, rate=r)
+            with open(output_path, "wb") as f:
+                async for chunk in communicate.stream():
+                    if chunk["type"] == "audio":
+                        f.write(chunk["data"])
+            return os.path.exists(output_path) and os.path.getsize(output_path) > 1000
+
+        for candidate_voice in [voice, "vi-VN-HoaiMyNeural"]:
+            for attempt in range(2):
+                try:
+                    ok = asyncio.run(_save_stream(candidate_voice, rate))
+                    if ok:
+                        LogManager.log(f"Edge-TTS tạo giọng đọc thành công ({candidate_voice})! Size: {os.path.getsize(output_path)} bytes", "SUCCESS", "TTS")
+                        return True
+                except Exception as e_tts:
+                    LogManager.log(f"Thử tạo TTS ({candidate_voice}, lần {attempt+1}) thất bại: {e_tts}", "WARNING", "TTS")
+                    time.sleep(1)
 
         return False
 
@@ -253,17 +266,21 @@ class AIReviewer:
         outro_text: str,
         total_duration_sec: float,
         output_path: str,
+        mid_text: str = "",
         task_id: str = ""
     ) -> Dict[str, Any]:
         """
-        Tạo luồng âm thanh thuyết minh hoàn chỉnh:
-        1. Intro hook: Đọc ở đầu phim (t = 0s).
-        2. Đoạn giữa: Khoảng lặng để giữ trọn thoại phim và hiệu ứng âm thanh.
-        3. Outro CTA: Kêu gọi Like & Đăng ký kênh @CoolMeoPhim ở cuối phim.
+        Tạo luồng âm thanh thuyết minh kịch tính xuyên suốt video:
+        1. Intro hook: Đọc mở đầu ở t = 0s (~35-45s) khơi gợi tò mò tột độ.
+        2. Mid-point recap: Đọc ở giữa phim (t ~ 40-50% thời lượng) bình luận cao trào lật mặt / phản đòn.
+        3. Outro CTA: Đọc ở cuối phim (t ~ kết thúc) chốt hạ cái kết hả hê và kêu gọi Like, Đăng ký kênh.
+        4. Các khoảng giữa phát nhạc nền điện ảnh lôi cuốn (BGM ducking tự động).
         """
         result = {
             "voice_path": None,
             "d_intro": 0.0,
+            "mid_start": 999999.0,
+            "d_mid": 0.0,
             "outro_start": 999999.0,
             "d_outro": 0.0
         }
@@ -271,38 +288,82 @@ class AIReviewer:
         temp_dir = os.path.abspath(os.path.dirname(output_path))
         output_path = os.path.abspath(output_path)
         intro_file = os.path.abspath(os.path.join(temp_dir, f"intro_{task_id}.mp3"))
+        mid_file = os.path.abspath(os.path.join(temp_dir, f"mid_{task_id}.mp3"))
         outro_file = os.path.abspath(os.path.join(temp_dir, f"outro_{task_id}.mp3"))
-        silence_file = os.path.abspath(os.path.join(temp_dir, f"silence_{task_id}.mp3"))
+        silence1_file = os.path.abspath(os.path.join(temp_dir, f"silence1_{task_id}.mp3"))
+        silence2_file = os.path.abspath(os.path.join(temp_dir, f"silence2_{task_id}.mp3"))
         concat_txt = os.path.abspath(os.path.join(temp_dir, f"voice_concat_{task_id}.txt"))
 
-        # Chuẩn hóa phát âm tự nhiên cho tên kênh
-        clean_intro = intro_text.replace("@CoolMeoPhim", "Cool Mèo Phim").strip() if intro_text else ""
-        clean_outro = outro_text.replace("@CoolMeoPhim", "Cool Mèo Phim").strip() if outro_text else ""
+        clean_intro = intro_text.strip() if intro_text else ""
+        clean_mid = mid_text.strip() if mid_text else ""
+        clean_outro = outro_text.strip() if outro_text else ""
 
-        has_intro = AIReviewer.synthesize_voiceover(clean_intro, intro_file) if clean_intro else False
-        has_outro = AIReviewer.synthesize_voiceover(clean_outro, outro_file) if clean_outro else False
+        has_intro = AIReviewer.synthesize_voiceover(clean_intro, intro_file, voice="vi-VN-NamMinhNeural", rate="+20%") if clean_intro else False
+        has_mid = AIReviewer.synthesize_voiceover(clean_mid, mid_file, voice="vi-VN-NamMinhNeural", rate="+20%") if clean_mid else False
+        has_outro = AIReviewer.synthesize_voiceover(clean_outro, outro_file, voice="vi-VN-NamMinhNeural", rate="+20%") if clean_outro else False
 
         d_intro = AIReviewer.get_audio_duration(intro_file) if has_intro else 0.0
+        d_mid = AIReviewer.get_audio_duration(mid_file) if has_mid else 0.0
         d_outro = AIReviewer.get_audio_duration(outro_file) if has_outro else 0.0
 
         result["d_intro"] = d_intro
+        result["d_mid"] = d_mid
         result["d_outro"] = d_outro
 
+        all_temp_files = [intro_file, mid_file, outro_file, silence1_file, silence2_file, concat_txt]
+
         try:
-            if has_intro and has_outro and total_duration_sec > (d_intro + d_outro + 3.0):
-                silence_sec = max(1.0, total_duration_sec - d_intro - d_outro - 1.0)
-                silence_cmd = [
-                    "ffmpeg", "-y", "-f", "lavfi",
-                    "-i", "anullsrc=r=48000:cl=stereo",
-                    "-t", f"{silence_sec:.2f}",
-                    "-c:a", "libmp3lame", "-b:a", "192k",
-                    silence_file
-                ]
-                subprocess.run(silence_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            # Trường hợp 1: Có đầy đủ Intro + Mid + Outro và video đủ dài (> d_intro + d_mid + d_outro + 6s)
+            if has_intro and has_mid and has_outro and total_duration_sec > (d_intro + d_mid + d_outro + 6.0):
+                mid_target = max(d_intro + 1.0, total_duration_sec * 0.42)
+                outro_target = max(mid_target + d_mid + 1.0, total_duration_sec - d_outro - 1.0)
+
+                silence1_sec = max(1.0, mid_target - d_intro)
+                silence2_sec = max(1.0, outro_target - (d_intro + silence1_sec + d_mid))
+
+                # Tạo silence 1
+                subprocess.run([
+                    "ffmpeg", "-y", "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo",
+                    "-t", f"{silence1_sec:.2f}", "-c:a", "libmp3lame", "-b:a", "192k", silence1_file
+                ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+                # Tạo silence 2
+                subprocess.run([
+                    "ffmpeg", "-y", "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo",
+                    "-t", f"{silence2_sec:.2f}", "-c:a", "libmp3lame", "-b:a", "192k", silence2_file
+                ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
                 with open(concat_txt, "w", encoding="utf-8") as f:
                     f.write("file " + chr(39) + intro_file.replace("\\", "/") + chr(39) + "\n")
-                    f.write("file " + chr(39) + silence_file.replace("\\", "/") + chr(39) + "\n")
+                    f.write("file " + chr(39) + silence1_file.replace("\\", "/") + chr(39) + "\n")
+                    f.write("file " + chr(39) + mid_file.replace("\\", "/") + chr(39) + "\n")
+                    f.write("file " + chr(39) + silence2_file.replace("\\", "/") + chr(39) + "\n")
+                    f.write("file " + chr(39) + outro_file.replace("\\", "/") + chr(39) + "\n")
+
+                concat_cmd = [
+                    "ffmpeg", "-y", "-f", "concat", "-safe", "0",
+                    "-i", concat_txt, "-c", "copy", output_path
+                ]
+                subprocess.run(concat_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+                if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
+                    result["voice_path"] = output_path
+                    result["mid_start"] = d_intro + silence1_sec
+                    result["outro_start"] = result["mid_start"] + d_mid + silence2_sec
+                    LogManager.log(f"Đã tạo audio thuyết minh 3 phần: Intro ({d_intro:.1f}s) + Giữa phim ({d_mid:.1f}s tại giây {result['mid_start']:.1f}) + Outro CTA ({d_outro:.1f}s tại giây {result['outro_start']:.1f})", "SUCCESS", "TTS")
+                    return result
+
+            # Trường hợp 2: Có Intro + Outro
+            elif has_intro and has_outro and total_duration_sec > (d_intro + d_outro + 3.0):
+                silence_sec = max(1.0, total_duration_sec - d_intro - d_outro - 1.0)
+                subprocess.run([
+                    "ffmpeg", "-y", "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo",
+                    "-t", f"{silence_sec:.2f}", "-c:a", "libmp3lame", "-b:a", "192k", silence1_file
+                ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+                with open(concat_txt, "w", encoding="utf-8") as f:
+                    f.write("file " + chr(39) + intro_file.replace("\\", "/") + chr(39) + "\n")
+                    f.write("file " + chr(39) + silence1_file.replace("\\", "/") + chr(39) + "\n")
                     f.write("file " + chr(39) + outro_file.replace("\\", "/") + chr(39) + "\n")
 
                 concat_cmd = [
@@ -314,26 +375,27 @@ class AIReviewer:
                 if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
                     result["voice_path"] = output_path
                     result["outro_start"] = d_intro + silence_sec
-                    LogManager.log(f"Đã tạo audio thuyết minh trọn gói: Intro ({d_intro:.1f}s) + Khoảng lặng ({silence_sec:.1f}s) + Outro CTA ({d_outro:.1f}s tại giây {result['outro_start']:.1f})", "SUCCESS", "TTS")
+                    LogManager.log(f"Đã tạo audio thuyết minh: Intro ({d_intro:.1f}s) + Outro CTA ({d_outro:.1f}s tại giây {result['outro_start']:.1f})", "SUCCESS", "TTS")
                     return result
 
-            elif has_intro:
-                if os.path.exists(intro_file):
-                    import shutil
-                    shutil.copy2(intro_file, output_path)
-                    result["voice_path"] = output_path
-                    result["outro_start"] = 999999.0
-                    return result
-            elif has_outro:
-                if os.path.exists(outro_file):
-                    import shutil
-                    shutil.copy2(outro_file, output_path)
-                    result["voice_path"] = output_path
-                    result["outro_start"] = max(0.0, total_duration_sec - d_outro)
-                    return result
+            # Trường hợp 3: Chỉ có Intro
+            elif has_intro and os.path.exists(intro_file):
+                import shutil
+                shutil.copy2(intro_file, output_path)
+                result["voice_path"] = output_path
+                result["outro_start"] = 999999.0
+                return result
+
+            # Trường hợp 4: Chỉ có Outro
+            elif has_outro and os.path.exists(outro_file):
+                import shutil
+                shutil.copy2(outro_file, output_path)
+                result["voice_path"] = output_path
+                result["outro_start"] = max(0.0, total_duration_sec - d_outro)
+                return result
 
         finally:
-            for tf in [intro_file, outro_file, silence_file, concat_txt]:
+            for tf in all_temp_files:
                 if os.path.exists(tf):
                     try: os.remove(tf)
                     except Exception: pass

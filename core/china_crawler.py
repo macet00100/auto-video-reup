@@ -67,9 +67,9 @@ class ChinaCrawler:
                         if HistoryManager.is_processed(unique_key):
                             continue
 
-                        # Trích xuất link M3U8 chuẩn
-                        m3u8_url = ChinaCrawler._extract_m3u8(play_url)
-                        if not m3u8_url:
+                        # Trích xuất toàn bộ link M3U8 chuẩn
+                        m3u8_urls = ChinaCrawler._extract_all_m3u8(play_url)
+                        if not m3u8_urls:
                             continue
 
                         # Tính điểm ưu tiên (Viral Score)
@@ -83,7 +83,8 @@ class ChinaCrawler:
                             "vod_id": vod_id,
                             "raw_title": vod_name,
                             "poster_url": vod_pic,
-                            "m3u8_url": m3u8_url,
+                            "m3u8_url": m3u8_urls[0],
+                            "m3u8_urls": m3u8_urls,
                             "source_name": src_name,
                             "updated_time": vod_time,
                             "score": score
@@ -96,22 +97,44 @@ class ChinaCrawler:
         return candidates[:limit]
 
     @staticmethod
-    def _extract_m3u8(play_url: str) -> Optional[str]:
+    def _extract_all_m3u8(play_url: str) -> List[str]:
         """
-        Bóc tách link M3U8 hợp lệ từ trường vod_play_url của AppleCMS.
+        Bóc tách danh sách toàn bộ các tập M3U8 hợp lệ từ trường vod_play_url của AppleCMS/MacCMS.
         """
         if not play_url:
-            return None
+            return []
 
+        all_valid_groups = []
         for group in play_url.split("$$$"):
+            group_urls = []
             for ep in group.split("#"):
                 if ".m3u8" in ep.lower():
                     parts = ep.split("$")
                     for p in parts:
                         p = p.strip()
                         if p.startswith("http") and ".m3u8" in p.lower():
-                            return p
-        return None
+                            group_urls.append(p)
+                            break
+            if group_urls:
+                all_valid_groups.append(group_urls)
+
+        if not all_valid_groups:
+            return []
+
+        # Ưu tiên nhóm có link direct m3u8 (thường chứa /202 hoặc mixed.m3u8 / index.m3u8)
+        for grp in all_valid_groups:
+            if any("/202" in u or "mixed" in u or "index.m3u8" in u for u in grp):
+                return grp
+
+        return all_valid_groups[0]
+
+    @staticmethod
+    def _extract_m3u8(play_url: str) -> Optional[str]:
+        """
+        Bóc tách link M3U8 đầu tiên hợp lệ.
+        """
+        urls = ChinaCrawler._extract_all_m3u8(play_url)
+        return urls[0] if urls else None
 
     @staticmethod
     def download_poster(poster_url: str, save_path: str) -> bool:
@@ -205,3 +228,101 @@ class ChinaCrawler:
         except Exception as e:
             LogManager.log(f"Lỗi ngoại lệ khi tải M3U8: {e}", "ERROR", "CRAWLER")
             return False
+
+    @staticmethod
+    def download_drama_video(
+        drama_info: Dict[str, Any],
+        output_path: str,
+        target_minutes: int = 12,
+        task_id: str = ""
+    ) -> bool:
+        """
+        Tải video phim đạt chuẩn độ dài Review Phim (tối thiểu 8 - 15 phút):
+        - Nếu là phim trọn bộ 1 file (như Quantum 50 - 90 phút): Tải trực tiếp qua M3U8.
+        - Nếu là phim vi kịch chia nhiều tập nhỏ (như FFZY 60 - 80 tập x 1.5 phút): Tải 8 - 10 tập đầu tiên và tự động ghép nối (concat) thành 1 video liền mạch 10 - 15 phút.
+        - Kiểm tra nghiêm ngặt: Tuyệt đối không bao giờ xuất bản video dưới 5 phút!
+        """
+        m3u8_urls = drama_info.get("m3u8_urls", [])
+        if not m3u8_urls and drama_info.get("m3u8_url"):
+            m3u8_urls = [drama_info["m3u8_url"]]
+
+        if not m3u8_urls:
+            LogManager.log(f"[{task_id}] Không tìm thấy link M3U8 hợp lệ.", "ERROR", "CRAWLER")
+            return False
+
+        temp_dir = os.path.dirname(output_path)
+
+        # TRƯỜNG HỢP 1: Phim bộ nhiều tập ngắn (mỗi tập 1-2 phút) -> Tải 8 - 10 tập rồi ghép lại
+        if len(m3u8_urls) > 1:
+            num_eps_to_get = min(len(m3u8_urls), max(8, int(target_minutes * 60 / 75)))
+            LogManager.log(f"[{task_id}] Phim bộ vi kịch ({len(m3u8_urls)} tập) -> Đang tải và ghép nối {num_eps_to_get} tập đầu để đạt chuẩn thời lượng 10-15 phút...", "INFO", "CRAWLER")
+
+            ep_files = []
+            concat_txt = os.path.join(temp_dir, f"concat_eps_{task_id}.txt")
+
+            try:
+                for i in range(num_eps_to_get):
+                    ep_url = m3u8_urls[i]
+                    ep_file = os.path.join(temp_dir, f"ep_{task_id}_{i}.mp4")
+                    ok = ChinaCrawler.download_m3u8_video(ep_url, ep_file, max_duration_seconds=180)
+                    if ok and os.path.exists(ep_file) and os.path.getsize(ep_file) > 100000:
+                        ep_files.append(ep_file)
+
+                if len(ep_files) < 4:
+                    LogManager.log(f"[{task_id}] Không tải đủ các tập phim bộ ({len(ep_files)}/{num_eps_to_get} tập).", "WARNING", "CRAWLER")
+                    return False
+
+                # Ghép các tập bằng FFmpeg concat demuxer (-c copy siêu tốc)
+                with open(concat_txt, "w", encoding="utf-8") as f:
+                    for ep_f in ep_files:
+                        f.write(f"file '{ep_f.replace('\\', '/')}'\n")
+
+                cmd = [
+                    "ffmpeg", "-y", "-f", "concat", "-safe", "0",
+                    "-i", concat_txt, "-c", "copy",
+                    "-bsf:a", "aac_adtstoasc",
+                    output_path
+                ]
+                res = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                if res.returncode != 0 or not os.path.exists(output_path) or os.path.getsize(output_path) < 1000000:
+                    LogManager.log(f"[{task_id}] Ghép nối các tập phim không thành công.", "ERROR", "CRAWLER")
+                    return False
+
+                LogManager.log(f"[{task_id}] Đã ghép nối thành công {len(ep_files)} tập phim thành 1 video liền mạch!", "SUCCESS", "CRAWLER")
+            finally:
+                if os.path.exists(concat_txt):
+                    try: os.remove(concat_txt)
+                    except: pass
+                for ep_f in ep_files:
+                    if os.path.exists(ep_f):
+                        try: os.remove(ep_f)
+                        except: pass
+
+        # TRƯỜNG HỢP 2: Phim trọn bộ 1 file (như Quantum 50-90 phút)
+        else:
+            LogManager.log(f"[{task_id}] Phim trọn bộ 1 file -> Đang tải trực tiếp toàn bộ mạch phim...", "INFO", "CRAWLER")
+            ok = ChinaCrawler.download_m3u8_video(m3u8_urls[0], output_path, max_duration_seconds=int(target_minutes * 180))
+            if not ok:
+                return False
+
+        # BƯỚC KIỂM TRA ĐỘ DÀI NGHIÊM NGẶT (TUYỆT ĐỐI KHÔNG BỎ QUA)
+        try:
+            dur_cmd = [
+                "ffprobe", "-v", "error", "-show_entries", "format=duration",
+                "-of", "default=noprint_wrappers=1:nokey=1", output_path
+            ]
+            res = subprocess.run(dur_cmd, capture_output=True, text=True)
+            dur = float(res.stdout.strip()) if res.stdout.strip() else 0.0
+
+            if dur < 300: # Dưới 5 phút (300 giây)
+                LogManager.log(f"[{task_id}] Video tải về quá ngắn ({dur/60:.1f} phút < 5 phút) -> Không đạt chuẩn Review Phim, tự động bỏ qua.", "WARNING", "CRAWLER")
+                if os.path.exists(output_path):
+                    try: os.remove(output_path)
+                    except: pass
+                return False
+
+            LogManager.log(f"[{task_id}] Video đạt chuẩn thời lượng vàng: {dur/60:.1f} phút ({round(os.path.getsize(output_path)/(1024*1024), 1)} MB).", "SUCCESS", "CRAWLER")
+            return True
+        except Exception as e:
+            LogManager.log(f"[{task_id}] Lỗi khi kiểm tra thời lượng video: {e}", "WARNING", "CRAWLER")
+            return os.path.exists(output_path) and os.path.getsize(output_path) > 5000000

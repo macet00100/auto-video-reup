@@ -346,18 +346,17 @@ def process_and_upload_china_drama(
         voice_text = review_pkg.get("voice_intro", "")
         yt_description = review_pkg["description"]
 
-        # BƯỚC 3: TẢI VIDEO M3U8 TRỰC TIẾP TỪ NGUỒN NỘI ĐỊA TRUNG QUỐC
+        # BƯỚC 3: TẢI VIDEO PHIM ĐẠT CHUẨN THỜI LƯỢNG VÀNG (8 - 15 PHÚT)
         raw_video = os.path.abspath(os.path.join(os.path.dirname(__file__), "storage", "temp", f"raw_{task_id}.mp4"))
         temp_files.append(raw_video)
-        max_mins = general_cfg.get("max_duration_minutes", 180)
-        dl_ok = ChinaCrawler.download_m3u8_video(m3u8_url, raw_video, max_duration_seconds=int(max_mins * 60))
+        target_recap_mins = general_cfg.get("target_recap_minutes", 10)
+        dl_ok = ChinaCrawler.download_drama_video(drama_info, raw_video, target_minutes=target_recap_mins, task_id=task_id)
         if not dl_ok:
-            LogManager.log(f"[{task_id}] Không thể tải video từ link M3U8.", "ERROR", "CHINA_RAW")
+            LogManager.log(f"[{task_id}] Không thể tải video đủ chuẩn từ nguồn Trung Quốc.", "ERROR", "CHINA_RAW")
             return False
 
-        # BƯỚC 4: TẠO BẢN REVIEW CÔ ĐỌNG DỒN DẬP (15 - 25 PHÚT CHUẨN FILM RECAP)
+        # BƯỚC 4: TẠO BẢN REVIEW CÔ ĐỌNG DỒN DẬP (8 - 15 PHÚT CHUẨN FILM RECAP)
         review_mode = general_cfg.get("review_mode", "condensed_recap")
-        target_recap_mins = general_cfg.get("target_recap_minutes", 20)
         video_to_process = raw_video
 
         if review_mode == "condensed_recap":
@@ -383,7 +382,7 @@ def process_and_upload_china_drama(
         if thumb_path:
             temp_files.append(thumb_path)
 
-        # BƯỚC 5.5: TẠO TRỌN GÓI GIỌNG ĐỌC THUYẾT MINH & ĐỒ HỌA KÊU GỌI ĐĂNG KÝ (CTA) CUỐI PHIM
+        # BƯỚC 5.5: TẠO TRỌN GÓI GIỌNG ĐỌC THUYẾT MINH 3 PHẦN & ĐỒ HỌA KÊU GỌI ĐĂNG KÝ (CTA) CUỐI PHIM
         vid_dur = VideoProcessor.get_video_duration(video_to_process)
         voice_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "storage", "temp", f"voice_{task_id}.mp3"))
         voice_info = AIReviewer.synthesize_full_review_voiceover(
@@ -391,6 +390,7 @@ def process_and_upload_china_drama(
             outro_text=review_pkg.get("voice_outro", ""),
             total_duration_sec=vid_dur,
             output_path=voice_path,
+            mid_text=review_pkg.get("voice_mid", ""),
             task_id=task_id
         )
         if voice_info.get("voice_path"):
