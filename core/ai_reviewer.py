@@ -79,7 +79,7 @@ class AIReviewer:
 
         # Đảm bảo chữ hoa đầu từ đẹp mắt
         vi_title_clean = " ".join([w.capitalize() for w in translated_title.split()])
-        safe_vi_title = f"Review Phim | {vi_title_clean}"
+        safe_vi_title = f"Review Phim {vi_title_clean}"
 
         default_intro = (
             f"Chào mừng cả nhà đã quay trở lại với kênh Cool Mèo Phim! Ngày hôm nay, chúng ta sẽ cùng theo dõi bộ phim vi kịch cực kỳ hấp dẫn và kịch tính mang tên {vi_title_clean}. "
@@ -108,7 +108,7 @@ class AIReviewer:
                     f"Bạn là biên tập viên review phim vi kịch Trung Quốc triệu view trên YouTube (kênh @CoolMeoPhim phong cách giống Triệu Vy Review, Gấu Phim).\n"
                     f"Bộ phim gốc Trung Quốc có tên: '{chinese_title}' (tạm dịch nghĩa tiếng Việt: '{translated_title}').\n\n"
                     f"Hãy sáng tạo một gói nội dung review phim hoàn chỉnh bằng tiếng Việt:\n"
-                    f"1. vietnamese_title: Tiêu đề giật gân, cuốn hút, chuẩn phong cách review phim. BẮT BUỘC bắt đầu bằng 'Review Phim | ' (hoặc 'Review Phim: '), TUYỆT ĐỐI KHÔNG dùng từ 'Full Trọn Bộ', độ dài từ 65 đến 95 ký tự.\n"
+                    f"1. vietnamese_title: Tiêu đề giật gân, cuốn hút, chuẩn phong cách review phim. BẮT BUỘC bắt đầu bằng 'Review Phim ' (tuyệt đối KHÔNG dùng ký tự gạch đứng '|', KHÔNG dùng hai chấm ':', và KHÔNG dùng 'Full Trọn Bộ'), độ dài từ 65 đến 95 ký tự.\n"
                     f"2. thumbnail_hook: Đúng 1 cụm từ 3-5 chữ in hoa cực sốc để đặt lên ảnh bìa (ví dụ: VỢ CŨ PHẢN BỘI, ÉP NÀNG DÂU PHÁ THAI, ĐẠI GIA GIẢ ĂN MÀY, VẢ MẶT TIỂU TAM).\n"
                     f"3. thumbnail_sub: Cụm từ phụ 3-4 chữ in hoa (ví dụ: CÁI KẾT HẢ HÊ, LỘ THÂN PHẬN, CẢ NHÀ QUỲ LẠY).\n"
                     f"4. voice_intro: Đoạn văn thuyết minh dẫn chuyện mở đầu cực kỳ gay cấn, lôi cuốn, văn phong kích thích tò mò tột độ dài khoảng 60-90 từ để đọc lồng tiếng trong 25-35 giây đầu của video. LƯU Ý BẮT BUỘC: TUYỆT ĐỐI KHÔNG kêu gọi Like hay Đăng ký kênh ở đoạn mở đầu này để khán giả tập trung vào cốt truyện.\n"
@@ -152,11 +152,11 @@ class AIReviewer:
 
                         if parsed.get("vietnamese_title"):
                             vt = parsed["vietnamese_title"].replace('"', '').strip()
-                            # Loại bỏ triệt để tiền tố "Full Trọn Bộ" nếu AI vô tình sinh ra
+                            # Loại bỏ triệt để tiền tố "Full Trọn Bộ" hoặc dấu gạch đứng "|" nếu AI vô tình sinh ra
                             vt = re.sub(r'^(Full\s*Trọn\s*Bộ\s*[:|–-]?\s*)+', '', vt, flags=re.IGNORECASE).strip()
-                            if not (vt.lower().startswith("review phim:") or vt.lower().startswith("review phim |") or vt.lower().startswith("review phim -")):
-                                vt = f"Review Phim | {vt}"
-                            package["vietnamese_title"] = vt
+                            vt = re.sub(r'^(Review\s*Phim\s*[:|–-]?\s*)+', '', vt, flags=re.IGNORECASE).strip()
+                            vt = vt.lstrip('|:–- ').strip()
+                            package["vietnamese_title"] = f"Review Phim {vt}"
                         if parsed.get("thumbnail_hook"):
                             package["thumbnail_hook"] = parsed["thumbnail_hook"].replace('"', '').strip()
                         if parsed.get("thumbnail_sub"):
