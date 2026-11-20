@@ -6,6 +6,138 @@ from core.task_queue import LogManager
 
 class ThumbnailGenerator:
     @staticmethod
+    def create_cinematic_thumbnail(
+        video_path: str,
+        task_id: str,
+        poster_path: Optional[str] = None
+    ) -> Optional[str]:
+        """
+        Thiết kế Thumbnail chuẩn điện ảnh 16:9 (1280x720) - HOÀN TOÀN KHÔNG CẦN CHỮ:
+        1. Phim dọc (9:16): Trích xuất 3 khung hình 9:16 tại 3 phân cảnh cao trào khác nhau của phim,
+           ghép lại thành 1 ảnh ngang 16:9 dạng 3 cột (triptych) kịch tính cực cuốn.
+        2. Phim ngang (16:9): Trích xuất 1 khung hình 16:9 đắt giá, sắc nét, có độ tương phản cao nhất.
+        """
+        from PIL import ImageOps
+        output_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "storage", "thumbnails"))
+        os.makedirs(output_dir, exist_ok=True)
+        out_file = os.path.join(output_dir, f"thumb_{task_id}.jpg")
+
+        if not video_path or not os.path.exists(video_path):
+            if poster_path and os.path.exists(poster_path):
+                try:
+                    with Image.open(poster_path) as p_img:
+                        canvas = ImageOps.fit(p_img.convert("RGB"), (1280, 720), method=Image.Resampling.LANCZOS)
+                        canvas.save(out_file, "JPEG", quality=95, optimize=True)
+                        return out_file
+                except Exception:
+                    pass
+            return None
+
+        try:
+            # 1. Đo kích thước và tỷ lệ video
+            cmd_probe = [
+                "ffprobe", "-v", "error", "-select_streams", "v:0",
+                "-show_entries", "stream=width,height", "-of", "csv=s=x:p=0", video_path
+            ]
+            res_probe = subprocess.run(cmd_probe, capture_output=True, text=True)
+            vw, vh = map(int, res_probe.stdout.strip().split("x"))
+            is_vertical = vh > vw
+
+            # 2. Đo thời lượng video
+            cmd_dur = [
+                "ffprobe", "-v", "error", "-show_entries", "format=duration",
+                "-of", "default=noprint_wrappers=1:nokey=1", video_path
+            ]
+            res_dur = subprocess.run(cmd_dur, capture_output=True, text=True)
+            dur = float(res_dur.stdout.strip()) if res_dur.returncode == 0 else 60.0
+
+            def extract_frame(t_sec: float, idx: int) -> Optional[Image.Image]:
+                t_file = os.path.join(output_dir, f"raw_f_{task_id}_{idx}.jpg")
+                cand_times = [t_sec, max(5.0, t_sec - 12.0), min(dur - 5.0, t_sec + 15.0)]
+                for ct in cand_times:
+                    c_cmd = ["ffmpeg", "-y", "-ss", f"{ct:.2f}", "-i", video_path, "-vframes", "1", "-q:v", "2", t_file]
+                    subprocess.run(c_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    if os.path.exists(t_file) and os.path.getsize(t_file) > 4000:
+                        try:
+                            with Image.open(t_file) as f_img:
+                                rgb = f_img.convert("RGB")
+                                stat = ImageStat.Stat(rgb)
+                                b_mean = sum(stat.mean) / len(stat.mean)
+                                if 25.0 < b_mean < 240.0:
+                                    os.remove(t_file)
+                                    return rgb
+                        except Exception:
+                            pass
+                        if os.path.exists(t_file):
+                            try: os.remove(t_file)
+                            except Exception: pass
+                # Lấy mặc định nếu không đạt ngưỡng sáng
+                c_cmd = ["ffmpeg", "-y", "-ss", f"{t_sec:.2f}", "-i", video_path, "-vframes", "1", "-q:v", "2", t_file]
+                subprocess.run(c_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                if os.path.exists(t_file):
+                    with Image.open(t_file) as f_img:
+                        rgb = f_img.convert("RGB")
+                    try: os.remove(t_file)
+                    except Exception: pass
+                    return rgb
+                return None
+
+            canvas = Image.new("RGB", (1280, 720), (0, 0, 0))
+
+            if is_vertical:
+                # DẠNG 1: PHIM DỌC (9:16) -> Cắt 3 khung hình ghép ngang thành 16:9
+                LogManager.log(f"[{task_id}] Phim dọc: Đang cắt 3 khung hình 9:16 tại 3 phân cảnh cao trào để ghép thumbnail 16:9 (Không chữ)...", "INFO", "THUMBNAIL")
+                t_points = [dur * 0.22, dur * 0.52, dur * 0.82]
+                widths = [426, 427, 427]
+                x_offsets = [0, 426, 853]
+
+                for i, tp in enumerate(t_points):
+                    frame_img = extract_frame(tp, i)
+                    if frame_img:
+                        fitted = ImageOps.fit(frame_img, (widths[i], 720), method=Image.Resampling.LANCZOS)
+                        canvas.paste(fitted, (x_offsets[i], 0))
+                    elif poster_path and os.path.exists(poster_path):
+                        with Image.open(poster_path) as p_img:
+                            fitted = ImageOps.fit(p_img.convert("RGB"), (widths[i], 720), method=Image.Resampling.LANCZOS)
+                            canvas.paste(fitted, (x_offsets[i], 0))
+
+                # Đường kẻ ngăn cách mờ viền tinh tế giữa 3 khung hình
+                draw = ImageDraw.Draw(canvas)
+                draw.line([(426, 0), (426, 720)], fill=(18, 18, 22), width=2)
+                draw.line([(853, 0), (853, 720)], fill=(18, 18, 22), width=2)
+
+            else:
+                # DẠNG 2: PHIM NGANG (16:9) -> Cắt 1 khung hình 16:9 đắt giá nhất
+                LogManager.log(f"[{task_id}] Phim ngang: Đang trích xuất 1 khung hình 16:9 sắc nét cao trào nhất (Không chữ)...", "INFO", "THUMBNAIL")
+                frame_img = extract_frame(dur * 0.45, 0)
+                if frame_img:
+                    canvas = ImageOps.fit(frame_img, (1280, 720), method=Image.Resampling.LANCZOS)
+                elif poster_path and os.path.exists(poster_path):
+                    with Image.open(poster_path) as p_img:
+                        canvas = ImageOps.fit(p_img.convert("RGB"), (1280, 720), method=Image.Resampling.LANCZOS)
+
+            # Tăng nhẹ độ tương phản và màu sắc điện ảnh cho thumbnail thêm bắt mắt
+            canvas = ImageEnhance.Contrast(canvas).enhance(1.08)
+            canvas = ImageEnhance.Color(canvas).enhance(1.10)
+
+            # TUYỆT ĐỐI KHÔNG VẼ CHỮ LÊN CANVAS (Theo yêu cầu không cần chữ)
+            canvas.save(out_file, "JPEG", quality=95, optimize=True)
+            LogManager.log(f"Đã tạo thumbnail điện ảnh hoàn mỹ (Không chữ): {out_file}", "SUCCESS", "THUMBNAIL")
+            return out_file
+
+        except Exception as e:
+            LogManager.log(f"Lỗi khi thiết kế thumbnail điện ảnh: {e}", "WARNING", "THUMBNAIL")
+            if poster_path and os.path.exists(poster_path):
+                try:
+                    with Image.open(poster_path) as p_img:
+                        canvas = ImageOps.fit(p_img.convert("RGB"), (1280, 720), method=Image.Resampling.LANCZOS)
+                        canvas.save(out_file, "JPEG", quality=95, optimize=True)
+                        return out_file
+                except Exception:
+                    pass
+            return None
+
+    @staticmethod
     def create_review_thumbnail(
         poster_path: Optional[str],
         hook_text: str,

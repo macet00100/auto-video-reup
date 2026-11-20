@@ -104,6 +104,9 @@ class HistoryManager:
         for vid, item in history.items():
             processed_at = item.get("processed_at", "")
             if processed_at.startswith(today_str) and (item.get("youtube_uploaded") or item.get("facebook_uploaded")):
+                extra = item.get("extra", {})
+                if extra.get("deleted") or extra.get("skipped"):
+                    continue
                 count += 1
         return count
 

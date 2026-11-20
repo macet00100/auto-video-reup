@@ -214,6 +214,11 @@ def run_china_raw_pipeline(cfg: Dict[str, Any], destination_titles: List[str], d
     yt_cfg = cfg.get("youtube", {})
     fb_cfg = cfg.get("facebook", {})
 
+    tz_vn = timezone(timedelta(hours=7))
+    now_vn = datetime.now(tz_vn)
+    # Nếu hiện tại đã quá 21h (hoặc slot 21h bị thiếu) -> Bật chế độ làm bù hẹn giờ sau 1 tiếng
+    is_compensatory = (now_vn.hour >= 21)
+
     LogManager.log(">>> BẮT ĐẦU CHẾ ĐỘ PHONG CÁCH B: QUÉT PHIM GỐC NỘI ĐỊA TRUNG QUỐC (ĐỘC QUYỀN 100%) <<<", "INFO", "CHINA_RAW")
     candidates = ChinaCrawler.get_candidate_dramas(limit=25)
     if not candidates:
@@ -242,34 +247,39 @@ def run_china_raw_pipeline(cfg: Dict[str, Any], destination_titles: List[str], d
         if is_dup:
             continue
 
-        LogManager.log(f"Đang xử lý phim ứng viên kịch tính: '{raw_title}' (Điểm kịch tính: {cand['score']})", "INFO", "CHINA_RAW")
+        LogManager.log(f"Đang xử lý phim ứng viên kịch tính: '{raw_title}' (Điểm kịch tính: {cand['score']}) [Làm bù +1h: {is_compensatory}]", "INFO", "CHINA_RAW")
         success = process_and_upload_china_drama(
             drama_info=cand,
             upload_to_yt=yt_cfg.get("enabled", True),
             upload_to_fb=fb_cfg.get("enabled", True),
-            cfg=cfg
+            cfg=cfg,
+            is_compensatory=is_compensatory
         )
         if success:
             LogManager.log(f"Đã xử lý và xuất bản thành công phim: '{raw_title}'", "SUCCESS", "CHINA_RAW")
             return True
         else:
-            LogManager.log(f"Phim '{raw_title}' không tải được từ CDN hoặc xử lý thất bại -> Tự động thử tiếp phim tiếp theo trong danh sách...", "WARNING", "CHINA_RAW")
+            LogManager.log(f"Phim '{raw_title}' không tải được từ CDN hoặc bị chặn bản quyền đã xóa -> Tự động thử tiếp phim tiếp theo làm bù sau 1 tiếng...", "WARNING", "CHINA_RAW")
+            is_compensatory = True
 
     LogManager.log("Toàn bộ phim mới quét được hôm nay đều đã được xử lý, trùng lặp hoặc CDN không phản hồi.", "INFO", "CHINA_RAW")
     return False
 
-def get_next_scheduled_slot() -> Tuple[datetime, str, int]:
+def get_next_scheduled_slot(is_compensatory: bool = False) -> Tuple[datetime, str, int]:
     """
-    Tính toán khung giờ vàng tiếp theo chuẩn giờ Việt Nam (UTC+7) để hẹn giờ đăng:
-    - Khung 1: 11:30 (Trưa)
-    - Khung 2: 17:30 (Chiều tan tầm)
-    - Khung 3: 21:00 (Tối muộn)
-    Tự động tránh các khung giờ đã được xếp lịch trước đó, xếp xoay vòng sang các slot tiếp theo.
+    Tính toán khung giờ hẹn giờ đăng video:
+    - Nếu is_compensatory = True (Làm bù video bị thiếu/bị chặn) hoặc hiện tại đã quá 21h: Đặt lịch sau 1 tiếng (now + 1 hour).
+    - Nếu bình thường: Hẹn vào khung giờ vàng tiếp theo (11:30, 17:30, 21:00) với buffer xử lý chất lượng ít nhất 50 phút.
     """
     tz_vn = timezone(timedelta(hours=7))
     now_vn = datetime.now(tz_vn)
-    slots = [(11, 30), (17, 30), (21, 0)]
 
+    if is_compensatory or now_vn.hour >= 21:
+        slot_dt = now_vn + timedelta(hours=1)
+        iso_utc = slot_dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+        return slot_dt, iso_utc, int(slot_dt.timestamp())
+
+    slots = [(11, 30), (17, 30), (21, 0)]
     scheduled_isostrings = set()
     try:
         hist_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "storage", "processed_history.json"))
@@ -296,14 +306,15 @@ def get_next_scheduled_slot() -> Tuple[datetime, str, int]:
             if iso_utc not in scheduled_isostrings:
                 return slot_dt, iso_utc, int(slot_dt.timestamp())
 
-    fallback_dt = datetime(now_vn.year, now_vn.month, now_vn.day, 11, 30, tzinfo=tz_vn) + timedelta(days=1)
-    return fallback_dt, fallback_dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"), int(fallback_dt.timestamp())
+    slot_dt = now_vn + timedelta(hours=1)
+    return slot_dt, slot_dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"), int(slot_dt.timestamp())
 
 def process_and_upload_china_drama(
     drama_info: Dict[str, Any],
     upload_to_yt: bool,
     upload_to_fb: bool,
-    cfg: Dict[str, Any]
+    cfg: Dict[str, Any],
+    is_compensatory: bool = False
 ) -> bool:
     task_id = f"cn_{int(time.time())}"
     vod_id = drama_info["vod_id"]
@@ -335,15 +346,7 @@ def process_and_upload_china_drama(
         voice_text = review_pkg.get("voice_intro", "")
         yt_description = review_pkg["description"]
 
-        # BƯỚC 3: THIẾT KẾ THUMBNAIL ĐIỆN ẢNH GIẬT GÂN (Chuẩn 16:9 1280x720)
-        thumb_path = ThumbnailGenerator.create_review_thumbnail(
-            poster_path=poster_path if has_poster else None,
-            hook_text=hook_text,
-            sub_text=sub_text,
-            task_id=task_id
-        )
-
-        # BƯỚC 4: TẢI VIDEO M3U8 TRỰC TIẾP TỪ NGUỒN NỘI ĐỊA TRUNG QUỐC
+        # BƯỚC 3: TẢI VIDEO M3U8 TRỰC TIẾP TỪ NGUỒN NỘI ĐỊA TRUNG QUỐC
         raw_video = os.path.abspath(os.path.join(os.path.dirname(__file__), "storage", "temp", f"raw_{task_id}.mp4"))
         temp_files.append(raw_video)
         max_mins = general_cfg.get("max_duration_minutes", 180)
@@ -352,7 +355,7 @@ def process_and_upload_china_drama(
             LogManager.log(f"[{task_id}] Không thể tải video từ link M3U8.", "ERROR", "CHINA_RAW")
             return False
 
-        # BƯỚC 5: TẠO BẢN REVIEW CÔ ĐỌNG DỒN DẬP (15 - 25 PHÚT CHUẨN FILM RECAP)
+        # BƯỚC 4: TẠO BẢN REVIEW CÔ ĐỌNG DỒN DẬP (15 - 25 PHÚT CHUẨN FILM RECAP)
         review_mode = general_cfg.get("review_mode", "condensed_recap")
         target_recap_mins = general_cfg.get("target_recap_minutes", 20)
         video_to_process = raw_video
@@ -369,6 +372,16 @@ def process_and_upload_china_drama(
             if condensed_video != raw_video:
                 temp_files.append(condensed_video)
                 video_to_process = condensed_video
+
+        # BƯỚC 5: THIẾT KẾ THUMBNAIL ĐIỆN ẢNH TỪ VIDEO (KHÔNG CẦN CHỮ)
+        # Phim dọc: cắt 3 khung hình 9:16 ghép 16:9; Phim ngang: cắt 1 khung hình 16:9 sắc nét
+        thumb_path = ThumbnailGenerator.create_cinematic_thumbnail(
+            video_path=video_to_process,
+            task_id=task_id,
+            poster_path=poster_path if has_poster else None
+        )
+        if thumb_path:
+            temp_files.append(thumb_path)
 
         # BƯỚC 5.5: TẠO TRỌN GÓI GIỌNG ĐỌC THUYẾT MINH & ĐỒ HỌA KÊU GỌI ĐĂNG KÝ (CTA) CUỐI PHIM
         vid_dur = VideoProcessor.get_video_duration(video_to_process)
@@ -433,9 +446,10 @@ def process_and_upload_china_drama(
         slot_vn_str = ""
 
         if is_scheduled:
-            slot_dt, yt_publish_at, fb_schedule_ts = get_next_scheduled_slot()
+            slot_dt, yt_publish_at, fb_schedule_ts = get_next_scheduled_slot(is_compensatory=is_compensatory)
             slot_vn_str = slot_dt.strftime("%H:%M ngày %d/%m/%Y")
-            LogManager.log(f"[{task_id}] ⏰ Đã lên lịch hẹn giờ đăng video: {slot_vn_str} (Giờ VN)", "SUCCESS", "SCHEDULER")
+            comp_label = " [LÀM BÙ HẸN GIỜ SAU 1 TIẾNG]" if is_compensatory else ""
+            LogManager.log(f"[{task_id}] ⏰ Đã lên lịch hẹn giờ đăng video: {slot_vn_str} (Giờ VN){comp_label}", "SUCCESS", "SCHEDULER")
 
         if upload_to_yt:
             seo_tags = AIRewriter.get_recommended_tags(new_title)

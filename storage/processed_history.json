@@ -1672,13 +1672,12 @@
     },
     "cn_167251": {
       "title": "Full Trọn Bộ | 妻子背叛当天，我重掌大权",
-      "youtube_uploaded": true,
-      "facebook_uploaded": true,
+      "youtube_uploaded": false,
+      "facebook_uploaded": false,
       "processed_at": "2026-11-20T13:45:57.397313",
       "extra": {
-        "raw_title": "妻子背叛当天，我重掌大权",
-        "scheduled_utc": "2026-11-21T04:30:00.000Z",
-        "scheduled_vn": "11:30 ngày 21/11/2026"
+        "deleted": true,
+        "reason": "Content ID blocked and deleted"
       }
     },
     "cn_167259": {
