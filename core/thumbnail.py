@@ -116,6 +116,52 @@ class ThumbnailGenerator:
             return None
 
     @staticmethod
+    def create_outro_banner(
+        task_id: str,
+        channel_name: str = "@CoolMeoPhim"
+    ) -> Optional[str]:
+        """
+        Tạo banner đồ họa kêu gọi Đăng ký & Like video hiển thị ở cuối phim review (tỷ lệ chuẩn HD):
+        - Nền: Viên thuốc bo góc (Pill) màu tối bán trong suốt (230 alpha) viền đỏ rực rỡ.
+        - Nút đỏ nổi bật: '🔔 ĐĂNG KÝ'.
+        - Dòng chữ vàng/trắng cuốn hút: 'BẤM LIKE & ĐĂNG KÝ KÊNH @CoolMeoPhim NHÉ!'
+        """
+        output_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "storage", "temp"))
+        os.makedirs(output_dir, exist_ok=True)
+        out_file = os.path.join(output_dir, f"outro_banner_{task_id}.png")
+
+        try:
+            w, h = 980, 110
+            img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(img)
+
+            # Nền bo góc bán trong suốt viền đỏ
+            draw.rounded_rectangle([(4, 4), (w - 4, h - 4)], radius=24, fill=(18, 18, 24, 230), outline=(230, 35, 35, 255), width=3)
+
+            font_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "static", "fonts", "font.ttf"))
+            try:
+                font_btn = ImageFont.truetype(font_path, 22)
+                font_main = ImageFont.truetype(font_path, 26)
+                font_sub = ImageFont.truetype(font_path, 18)
+            except Exception:
+                font_btn = font_main = font_sub = ImageFont.load_default()
+
+            # Nút Đăng ký đỏ ở bên trái
+            draw.rounded_rectangle([(25, 25), (210, 85)], radius=14, fill=(230, 35, 35, 255))
+            draw.text((117, 55), "🔔 ĐĂNG KÝ", fill=(255, 255, 255, 255), font=font_btn, anchor="mm")
+
+            # Tiêu đề kêu gọi Like & Sub
+            draw.text((235, 34), f"👍 BẤM LIKE & ĐĂNG KÝ KÊNH {channel_name} NHÉ! ❤️", fill=(255, 225, 0, 255), font=font_main)
+            draw.text((235, 70), "Bật chuông thông báo để đón xem những bộ phim kịch tính mỗi ngày", fill=(240, 240, 240, 240), font=font_sub)
+
+            img.save(out_file, "PNG")
+            LogManager.log(f"Đã tạo Outro Banner kêu gọi Like & Sub: {out_file}", "SUCCESS", "THUMBNAIL")
+            return out_file
+        except Exception as e:
+            LogManager.log(f"Lỗi khi tạo Outro Banner: {e}", "WARNING", "THUMBNAIL")
+            return None
+
+    @staticmethod
     def create_thumbnail(
         video_path: Optional[str],
         fallback_image_path: Optional[str],

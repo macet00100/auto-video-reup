@@ -7,6 +7,19 @@ from core.task_queue import LogManager
 
 class VideoProcessor:
     @staticmethod
+    def get_video_duration(video_path: str) -> float:
+        """Đo thời lượng video chính xác bằng ffprobe."""
+        try:
+            cmd = [
+                "ffprobe", "-v", "error", "-show_entries", "format=duration",
+                "-of", "default=noprint_wrappers=1:nokey=1", video_path
+            ]
+            res = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            return float(res.stdout.strip())
+        except Exception:
+            return 3600.0
+
+    @staticmethod
     def create_condensed_recap_montage(
         input_video_path: str,
         output_montage_path: str,
@@ -20,16 +33,7 @@ class VideoProcessor:
         """
         import math
         # 1. Đo thời lượng thực tế của phim gốc
-        dur = 3600.0
-        try:
-            probe_cmd = [
-                "ffprobe", "-v", "error", "-show_entries", "format=duration",
-                "-of", "default=noprint_wrappers=1:nokey=1", input_video_path
-            ]
-            res = subprocess.run(probe_cmd, capture_output=True, text=True, check=True)
-            dur = float(res.stdout.strip())
-        except Exception:
-            pass
+        dur = VideoProcessor.get_video_duration(input_video_path)
 
         target_seconds = target_minutes * 60
         # Nếu phim vốn dĩ đã ngắn <= target_minutes thì giữ nguyên
@@ -359,72 +363,79 @@ class VideoProcessor:
         voiceover_file = rules.get("voiceover_path")
         use_voiceover = bool(voiceover_file and os.path.exists(voiceover_file) and os.path.getsize(voiceover_file) > 1000)
 
-        # XÂY DỰNG LỆNH FFMPEG MIX ÂM THANH & LÁCH BẢN QUYỀN
-        if use_bgm and use_voiceover:
-            # 3 luồng âm thanh: Tiếng gốc hạ âm lượng + Nhạc nền + Giọng thuyết minh tiếng Việt AI nổi bật
-            fc_str = (
-                f"[0:v]{vf_str}[vout];"
-                f"[0:a]{af_str},volume=0.35[a0];"
-                f"[1:a]volume={bgm_volume:.3f}[a1];"
-                f"[2:a]volume=1.4[a2];"
+        outro_banner_file = rules.get("outro_banner_path")
+        use_banner = bool(outro_banner_file and os.path.exists(outro_banner_file) and os.path.getsize(outro_banner_file) > 1000)
+
+        d_intro = float(rules.get("d_intro", 25.0))
+        outro_start = float(rules.get("outro_start", 999999.0))
+
+        # XÂY DỰNG LỆNH FFMPEG MIX ÂM THANH, OVERLAY OUTRO BANNER & LÁCH BẢN QUYỀN
+        cmd = ["ffmpeg", "-y"]
+        if cut_intro_seconds > 0:
+            cmd.extend(["-ss", str(cut_intro_seconds)])
+        cmd.extend(["-i", input_path])
+        current_idx = 1
+
+        bgm_idx = None
+        if use_bgm:
+            cmd.extend(["-stream_loop", "-1", "-i", bgm_file])
+            bgm_idx = current_idx
+            current_idx += 1
+
+        voice_idx = None
+        if use_voiceover:
+            cmd.extend(["-i", voiceover_file])
+            voice_idx = current_idx
+            current_idx += 1
+
+        banner_idx = None
+        if use_banner:
+            cmd.extend(["-i", outro_banner_file])
+            banner_idx = current_idx
+            current_idx += 1
+
+        # 1. Video Filter / Overlay Graph
+        if banner_idx is not None:
+            banner_scale = "scale=680:-1" if fmt_info["is_vertical"] else "scale=980:-1"
+            v_fc = f"[0:v]{vf_str}[vbase];[{banner_idx}:v]{banner_scale}[vbanner];[vbase][vbanner]overlay=(W-w)/2:H-h-45:enable='gte(t\\,{outro_start:.1f})'[vout]"
+        else:
+            v_fc = f"[0:v]{vf_str}[vout]"
+
+        # 2. Audio Filter Graph (Dynamic Ducking: hạ âm thoại gốc khi giọng review đọc intro & outro CTA)
+        if use_voiceover and has_audio:
+            if outro_start < 999990.0 and outro_start > d_intro:
+                duck_filter = f"volume=enable='not(between(t\\,{d_intro:.1f}\\,{outro_start:.1f}))':volume=0.35"
+            else:
+                duck_filter = f"volume=enable='lte(t\\,{d_intro:.1f})':volume=0.35"
+            af_combined = f"{af_str},{duck_filter}"
+        else:
+            af_combined = af_str
+
+        a_fc = None
+        if bgm_idx is not None and voice_idx is not None and has_audio:
+            a_fc = (
+                f"[0:a]{af_combined}[a0];"
+                f"[{bgm_idx}:a]volume={bgm_volume:.3f}[a1];"
+                f"[{voice_idx}:a]volume=1.4[a2];"
                 f"[a0][a1][a2]amix=inputs=3:duration=first:dropout_transition=2[aout]"
             )
-            cmd = ["ffmpeg", "-y"]
-            if cut_intro_seconds > 0:
-                cmd.extend(["-ss", str(cut_intro_seconds)])
-            cmd.extend([
-                "-i", input_path,
-                "-stream_loop", "-1", "-i", bgm_file,
-                "-i", voiceover_file,
-                "-filter_complex", fc_str,
-                "-map", "[vout]",
-                "-map", "[aout]",
-                "-c:v", "libx264",
-                "-preset", preset,
-                "-crf", "23",
-                "-r", "30",
-                "-c:a", "aac",
-                "-b:a", "192k",
-                "-ar", "48000",
-                "-threads", threads,
-                output_path
-            ])
-        elif use_bgm:
-            # Trộn âm thanh gốc với nhạc nền ngầm (BGM)
-            fc_str = f"[0:v]{vf_str}[vout];[0:a]{af_str}[a0];[1:a]volume={bgm_volume:.3f}[a1];[a0][a1]amix=inputs=2:duration=first:dropout_transition=2[aout]"
-            cmd = ["ffmpeg", "-y"]
-            if cut_intro_seconds > 0:
-                cmd.extend(["-ss", str(cut_intro_seconds)])
-            cmd.extend([
-                "-i", input_path,
-                "-stream_loop", "-1", "-i", bgm_file,
-                "-filter_complex", fc_str,
-                "-map", "[vout]",
-                "-map", "[aout]",
-                "-c:v", "libx264",
-                "-preset", preset,
-                "-crf", "23",
-                "-r", "30",
-                "-c:a", "aac",
-                "-b:a", "192k",
-                "-ar", "48000",
-                "-threads", threads,
-                output_path
-            ])
-        elif use_voiceover:
-            # Trộn âm thanh gốc với giọng thuyết minh tiếng Việt AI
-            fc_str = (
-                f"[0:v]{vf_str}[vout];"
-                f"[0:a]{af_str},volume=0.35[a0];"
-                f"[1:a]volume=1.4[a1];"
+        elif voice_idx is not None and has_audio:
+            a_fc = (
+                f"[0:a]{af_combined}[a0];"
+                f"[{voice_idx}:a]volume=1.4[a1];"
                 f"[a0][a1]amix=inputs=2:duration=first:dropout_transition=2[aout]"
             )
-            cmd = ["ffmpeg", "-y"]
-            if cut_intro_seconds > 0:
-                cmd.extend(["-ss", str(cut_intro_seconds)])
+        elif bgm_idx is not None and has_audio:
+            a_fc = (
+                f"[0:a]{af_str}[a0];"
+                f"[{bgm_idx}:a]volume={bgm_volume:.3f}[a1];"
+                f"[a0][a1]amix=inputs=2:duration=first:dropout_transition=2[aout]"
+            )
+
+        # 3. Kết hợp Filter Complex
+        if a_fc:
+            fc_str = f"{v_fc};{a_fc}"
             cmd.extend([
-                "-i", input_path,
-                "-i", voiceover_file,
                 "-filter_complex", fc_str,
                 "-map", "[vout]",
                 "-map", "[aout]",
@@ -438,14 +449,14 @@ class VideoProcessor:
                 "-threads", threads,
                 output_path
             ])
-        else:
-            cmd = ["ffmpeg", "-y"]
-            if cut_intro_seconds > 0:
-                cmd.extend(["-ss", str(cut_intro_seconds)])
+        elif banner_idx is not None:
             cmd.extend([
-                "-i", input_path,
-                "-vf", vf_str,
-                "-map", "0:v:0",
+                "-filter_complex", v_fc,
+                "-map", "[vout]",
+                "-c:v", "libx264",
+                "-preset", preset,
+                "-crf", "23",
+                "-r", "30",
             ])
             if has_audio:
                 cmd.extend([
@@ -455,14 +466,25 @@ class VideoProcessor:
                     "-b:a", "192k",
                     "-ar", "48000"
                 ])
+            cmd.extend(["-threads", threads, output_path])
+        else:
             cmd.extend([
-                "-r", "30",
+                "-vf", vf_str,
+                "-map", "0:v:0",
                 "-c:v", "libx264",
                 "-preset", preset,
                 "-crf", "23",
-                "-threads", threads,
-                output_path
+                "-r", "30",
             ])
+            if has_audio:
+                cmd.extend([
+                    "-map", "0:a:0",
+                    "-af", af_str,
+                    "-c:a", "aac",
+                    "-b:a", "192k",
+                    "-ar", "48000"
+                ])
+            cmd.extend(["-threads", threads, output_path])
 
         LogManager.log(f"[{task_id}] Thực thi lệnh FFmpeg ({'DỌC 9:16' if fmt_info['is_vertical'] else 'NGANG 16:9'}): {' '.join(cmd[:14])}...", "INFO", "FFMPEG")
 

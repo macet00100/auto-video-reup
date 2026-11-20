@@ -333,16 +333,7 @@ def process_and_upload_china_drama(
         voice_text = review_pkg.get("voice_intro", "")
         yt_description = review_pkg["description"]
 
-        # BƯỚC 3: TẠO GIỌNG ĐỌC THUYẾT MINH TIẾNG VIỆT
-        voice_path = None
-        if voice_text:
-            voice_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "storage", "temp", f"voice_{task_id}.mp3"))
-            if AIReviewer.synthesize_voiceover(voice_text, voice_path):
-                temp_files.append(voice_path)
-            else:
-                voice_path = None
-
-        # BƯỚC 4: THIẾT KẾ THUMBNAIL ĐIỆN ẢNH GIẬT GÂN (Chuẩn 16:9 1280x720)
+        # BƯỚC 3: THIẾT KẾ THUMBNAIL ĐIỆN ẢNH GIẬT GÂN (Chuẩn 16:9 1280x720)
         thumb_path = ThumbnailGenerator.create_review_thumbnail(
             poster_path=poster_path if has_poster else None,
             hook_text=hook_text,
@@ -350,7 +341,7 @@ def process_and_upload_china_drama(
             task_id=task_id
         )
 
-        # BƯỚC 5: TẢI VIDEO M3U8 TRỰC TIẾP TỪ NGUỒN NỘI ĐỊA TRUNG QUỐC
+        # BƯỚC 4: TẢI VIDEO M3U8 TRỰC TIẾP TỪ NGUỒN NỘI ĐỊA TRUNG QUỐC
         raw_video = os.path.abspath(os.path.join(os.path.dirname(__file__), "storage", "temp", f"raw_{task_id}.mp4"))
         temp_files.append(raw_video)
         max_mins = general_cfg.get("max_duration_minutes", 180)
@@ -359,7 +350,7 @@ def process_and_upload_china_drama(
             LogManager.log(f"[{task_id}] Không thể tải video từ link M3U8.", "ERROR", "CHINA_RAW")
             return False
 
-        # BƯỚC 5.5: TẠO BẢN REVIEW CÔ ĐỌNG DỒN DẬP (15 - 25 PHÚT CHUẨN FILM RECAP)
+        # BƯỚC 5: TẠO BẢN REVIEW CÔ ĐỌNG DỒN DẬP (15 - 25 PHÚT CHUẨN FILM RECAP)
         review_mode = general_cfg.get("review_mode", "condensed_recap")
         target_recap_mins = general_cfg.get("target_recap_minutes", 20)
         video_to_process = raw_video
@@ -377,7 +368,24 @@ def process_and_upload_china_drama(
                 temp_files.append(condensed_video)
                 video_to_process = condensed_video
 
-        # BƯỚC 6: RENDER FFMPEG LÁCH BẢN QUYỀN + MIX GIỌNG ĐỌC THUYẾT MINH
+        # BƯỚC 5.5: TẠO TRỌN GÓI GIỌNG ĐỌC THUYẾT MINH & ĐỒ HỌA KÊU GỌI ĐĂNG KÝ (CTA) CUỐI PHIM
+        vid_dur = VideoProcessor.get_video_duration(video_to_process)
+        voice_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "storage", "temp", f"voice_{task_id}.mp3"))
+        voice_info = AIReviewer.synthesize_full_review_voiceover(
+            intro_text=voice_text,
+            outro_text=review_pkg.get("voice_outro", ""),
+            total_duration_sec=vid_dur,
+            output_path=voice_path,
+            task_id=task_id
+        )
+        if voice_info.get("voice_path"):
+            temp_files.append(voice_path)
+
+        outro_banner = ThumbnailGenerator.create_outro_banner(task_id=task_id, channel_name="@CoolMeoPhim")
+        if outro_banner:
+            temp_files.append(outro_banner)
+
+        # BƯỚC 6: RENDER FFMPEG LÁCH BẢN QUYỀN + DYNAMIC DUCKING + OVERLAY OUTRO BANNER
         user_bypass = yt_cfg.get("bypass_rules", {})
         combined_rules = {
             "hflip": user_bypass.get("hflip", True),
@@ -392,7 +400,10 @@ def process_and_upload_china_drama(
             "target_resolution": user_bypass.get("target_resolution", "720p"),
             "cut_intro_seconds": float(user_bypass.get("cut_intro_seconds", 2.0)),
             "preset": "veryfast",
-            "voiceover_path": voice_path
+            "voiceover_path": voice_info.get("voice_path"),
+            "d_intro": voice_info.get("d_intro", 25.0),
+            "outro_start": voice_info.get("outro_start", max(0.0, vid_dur - 20.0)),
+            "outro_banner_path": outro_banner
         }
 
         processed_video = VideoProcessor.process(
