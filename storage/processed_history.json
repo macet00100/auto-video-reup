@@ -1719,13 +1719,15 @@
     },
     "cn_167254": {
       "title": "Review Phim Trở Lại Ngày Phát Hiện Ra Mình Có Thai, Tôi Không Thể Chịu Đựng Được Nữa.",
-      "youtube_uploaded": true,
-      "facebook_uploaded": true,
+      "youtube_uploaded": false,
+      "facebook_uploaded": false,
       "processed_at": "2026-11-21T01:35:04.511451",
       "extra": {
         "raw_title": "重回诊出喜脉那日，我不忍了",
         "scheduled_utc": "2026-11-21T04:30:00.000Z",
-        "scheduled_vn": "11:30 ngày 21/11/2026"
+        "scheduled_vn": "11:30 ngày 21/11/2026",
+        "deleted": true,
+        "reason": "Content ID blocked and deleted"
       }
     }
   }

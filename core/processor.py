@@ -23,14 +23,14 @@ class VideoProcessor:
     def create_condensed_recap_montage(
         input_video_path: str,
         output_montage_path: str,
-        target_minutes: int = 20,
-        clip_duration: int = 18,
+        target_minutes: int = 10,
+        clip_duration: int = 10,
         task_id: str = ""
     ) -> str:
         """
-        Trích xuất các phân cảnh then chốt trải đều từ đầu đến cuối phim (từ 1.5 - 2.5 tiếng),
-        ghép nối thành video review cô đọng 15 - 25 phút dồn dập, kịch tính chuẩn Film Recap.
-        Cắt lát 15 - 20s/cảnh để giữ mạch phim gay cấn và phá vỡ 100% thuật toán Content ID.
+        Trích xuất các phân cảnh then chốt trải đều từ đầu đến cuối phim,
+        ghép nối thành video review cô đọng 8 - 12 phút dồn dập, kịch tính chuẩn Film Recap.
+        Cắt lát 10s/cảnh để giữ mạch phim gay cấn và phá vỡ 100% thuật toán Content ID.
         """
         import math
         # 1. Đo thời lượng thực tế của phim gốc

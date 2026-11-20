@@ -365,7 +365,7 @@ def process_and_upload_china_drama(
                 input_video_path=raw_video,
                 output_montage_path=montage_path,
                 target_minutes=target_recap_mins,
-                clip_duration=18,
+                clip_duration=10,
                 task_id=task_id
             )
             if condensed_video != raw_video:
@@ -474,32 +474,43 @@ def process_and_upload_china_drama(
 
                     # KIỂM TRA BẢN QUYỀN CONTENT ID SAU KHI TẢI LÊN (BẢO VỆ KÊNH AN TOÀN 100%)
                     try:
-                        time.sleep(15)
                         token_chk = YouTubeUploader.get_valid_access_token(yt_cfg.get("destination", {}))
                         if token_chk and uploaded_yt_id:
-                            chk_url = f"https://www.googleapis.com/youtube/v3/videos?part=contentDetails,status&id={uploaded_yt_id}"
-                            chk_req = urllib.request.Request(chk_url, headers={"Authorization": f"Bearer {token_chk}"})
-                            with urllib.request.urlopen(chk_req, timeout=10) as resp:
-                                chk_data = json.loads(resp.read().decode("utf-8"))
-                                items = chk_data.get("items", [])
-                                if items:
-                                    region_res = items[0].get("contentDetails", {}).get("regionRestriction", {})
-                                    blocked = region_res.get("blocked", [])
-                                    if "VN" in blocked or len(blocked) > 50:
-                                        LogManager.log(f"[{task_id}] CẢNH BÁO: Video bị YouTube Content ID chặn bản quyền! Đang tự động xóa ngay để bảo vệ kênh...", "WARNING", "YOUTUBE")
-                                        del_req = urllib.request.Request(
-                                            f"https://www.googleapis.com/youtube/v3/videos?id={uploaded_yt_id}",
-                                            headers={"Authorization": f"Bearer {token_chk}"},
-                                            method="DELETE"
-                                        )
-                                        urllib.request.urlopen(del_req, timeout=10)
-                                        LogManager.log(f"[{task_id}] Đã xóa video bị chặn ({uploaded_yt_id}) thành công! Kênh an toàn 100%.", "SUCCESS", "YOUTUBE")
-                                        yt_success = False
-                                        uploaded_yt_id = None
+                            # Chờ YouTube xử lý xong video và kiểm tra Content ID (tối đa 60s)
+                            for poll_idx in range(6):
+                                time.sleep(10)
+                                chk_url = f"https://www.googleapis.com/youtube/v3/videos?part=contentDetails,status&id={uploaded_yt_id}"
+                                chk_req = urllib.request.Request(chk_url, headers={"Authorization": f"Bearer {token_chk}"})
+                                with urllib.request.urlopen(chk_req, timeout=10) as resp:
+                                    chk_data = json.loads(resp.read().decode("utf-8"))
+                                    items = chk_data.get("items", [])
+                                    if items:
+                                        region_res = items[0].get("contentDetails", {}).get("regionRestriction", {})
+                                        blocked = region_res.get("blocked", [])
+                                        if "VN" in blocked or len(blocked) > 50:
+                                            LogManager.log(f"[{task_id}] CẢNH BÁO: Video bị YouTube Content ID chặn bản quyền! Đang tự động xóa ngay để bảo vệ kênh...", "WARNING", "YOUTUBE")
+                                            del_req = urllib.request.Request(
+                                                f"https://www.googleapis.com/youtube/v3/videos?id={uploaded_yt_id}",
+                                                headers={"Authorization": f"Bearer {token_chk}"},
+                                                method="DELETE"
+                                            )
+                                            urllib.request.urlopen(del_req, timeout=10)
+                                            LogManager.log(f"[{task_id}] Đã xóa video bị chặn ({uploaded_yt_id}) thành công! Kênh an toàn 100%.", "SUCCESS", "YOUTUBE")
+                                            yt_success = False
+                                            uploaded_yt_id = None
+                                            break
+                                        if items[0].get("status", {}).get("uploadStatus") == "processed":
+                                            LogManager.log(f"[{task_id}] Video đã được YouTube xử lý xong, KHÔNG BỊ CHẶN BẢN QUYỀN (Sạch 100%).", "SUCCESS", "YOUTUBE")
+                                            break
                     except Exception as e_chk:
                         LogManager.log(f"[{task_id}] Kiểm tra bản quyền Content ID: {e_chk}", "INFO", "YOUTUBE")
             except Exception as e:
                 LogManager.log(f"[{task_id}] Lỗi khi upload YouTube: {e}", "ERROR", "YOUTUBE")
+
+        # Chỉ tải lên Facebook khi YouTube không bị chặn bản quyền
+        if not yt_success:
+            LogManager.log(f"[{task_id}] Video YouTube không thành công hoặc bị chặn bản quyền -> Không đăng Facebook và tự động thử phim khác.", "WARNING", "CHINA_RAW")
+            return False
 
         if upload_to_fb:
             fb_desc = (
