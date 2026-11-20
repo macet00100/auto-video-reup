@@ -289,7 +289,8 @@ def get_next_scheduled_slot() -> Tuple[datetime, str, int]:
         check_date = (now_vn + timedelta(days=day_offset)).date()
         for hour, minute in slots:
             slot_dt = datetime(check_date.year, check_date.month, check_date.day, hour, minute, tzinfo=tz_vn)
-            if slot_dt < now_vn + timedelta(minutes=25):
+            # Đảm bảo video được tải lên trước ít nhất 50 - 60 phút để YouTube & Facebook hoàn tất xử lý chất lượng HD 1080p
+            if slot_dt < now_vn + timedelta(minutes=50):
                 continue
             iso_utc = slot_dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
             if iso_utc not in scheduled_isostrings:

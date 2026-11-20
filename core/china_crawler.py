@@ -134,6 +134,34 @@ class ChinaCrawler:
             return False
 
     @staticmethod
+    def resolve_m3u8_stream(m3u8_url: str) -> str:
+        """
+        Bóc tách Master Playlist (.m3u8) để lấy direct stream m3u8 chuẩn,
+        tránh triệt để lỗi 404 relative path của FFmpeg khi gặp CDN Trung Quốc.
+        """
+        try:
+            req = urllib.request.Request(
+                m3u8_url,
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+            )
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                text = resp.read().decode("utf-8", errors="ignore")
+                base_url = m3u8_url.rsplit("/", 1)[0]
+                for line in text.splitlines():
+                    line = line.strip()
+                    if line and not line.startswith("#"):
+                        if line.startswith("http"):
+                            return line
+                        elif line.startswith("/"):
+                            parsed = urllib.parse.urlparse(m3u8_url)
+                            return f"{parsed.scheme}://{parsed.netloc}{line}"
+                        else:
+                            return f"{base_url}/{line}"
+        except Exception:
+            pass
+        return m3u8_url
+
+    @staticmethod
     def download_m3u8_video(
         m3u8_url: str,
         output_path: str,
@@ -142,10 +170,11 @@ class ChinaCrawler:
         """
         Tải video trọn bộ từ link M3U8 bằng FFmpeg với tốc độ cao (stream copy).
         """
-        LogManager.log(f"Đang tải video từ M3U8 trực tiếp: {m3u8_url[:70]}...", "INFO", "CRAWLER")
+        direct_stream_url = ChinaCrawler.resolve_m3u8_stream(m3u8_url)
+        LogManager.log(f"Đang tải video từ M3U8 trực tiếp: {direct_stream_url[:75]}...", "INFO", "CRAWLER")
         t0 = time.time()
         try:
-            parsed_url = urllib.parse.urlparse(m3u8_url)
+            parsed_url = urllib.parse.urlparse(direct_stream_url)
             referer = f"{parsed_url.scheme}://{parsed_url.netloc}/"
             headers_str = (
                 "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\r\n"
@@ -154,7 +183,7 @@ class ChinaCrawler:
             cmd = [
                 "ffmpeg", "-y",
                 "-headers", headers_str,
-                "-i", m3u8_url,
+                "-i", direct_stream_url,
                 "-t", str(max_duration_seconds),
                 "-c", "copy",
                 "-bsf:a", "aac_adtstoasc",
