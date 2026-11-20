@@ -11,7 +11,7 @@
         "max_duration_minutes": 180,
         "clean_temp_after_upload": true,
         "proxy": "",
-        "max_daily_uploads": 1
+        "max_daily_uploads": 2
     },
     "youtube": {
         "enabled": true,
