@@ -27,13 +27,65 @@ class AIReviewer:
     )
 
     @staticmethod
+    def translate_chinese_to_vietnamese(text: str) -> str:
+        """
+        Dịch tự động tiêu đề/nội dung tiếng Trung sang tiếng Việt 100% miễn phí,
+        kết hợp MyMemory Translated API và Google Translate endpoint dự phòng.
+        """
+        if not text or not text.strip():
+            return ""
+        clean_text = text.strip()
+        # Cách 1: MyMemory Translated API
+        try:
+            import urllib.request, urllib.parse
+            url = f"https://api.mymemory.translated.net/get?q={urllib.parse.quote(clean_text)}&langpair=zh-CN|vi"
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=6) as r:
+                data = json.loads(r.read().decode("utf-8"))
+                trans = data.get("responseData", {}).get("translatedText", "").strip()
+                if trans and not trans.startswith("MYMEMORY WARNING") and len(trans) > 2:
+                    return trans
+        except Exception:
+            pass
+
+        # Cách 2: Google Translate mobile endpoint
+        try:
+            import urllib.request, urllib.parse
+            url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=zh-CN&tl=vi&dt=t&q={urllib.parse.quote(clean_text)}"
+            req = urllib.request.Request(url, headers={"User-Agent": "AndroidTranslate/5.3.0.RC02.130475354-53000263 5.1 phone TRANSLATE_OPM5_TEST_1"})
+            with urllib.request.urlopen(req, timeout=6) as r:
+                data = json.loads(r.read().decode("utf-8"))
+                res_str = "".join([part[0] for part in data[0] if part and part[0]]).strip()
+                if res_str and len(res_str) > 2:
+                    return res_str
+        except Exception:
+            pass
+
+        return clean_text
+
+    @staticmethod
     def generate_review_package(
         chinese_title: str,
         gemini_key: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Sử dụng Gemini Flash để tạo trọn bộ gói nội dung Review phim vi kịch Trung Quốc.
+        Đảm bảo 100% tiêu đề tiếng Việt và luôn có lời thoại thuyết minh (Voiceover).
         """
+        # Bước 1: Dịch tiêu đề gốc tiếng Trung sang tiếng Việt ngay từ đầu
+        translated_title = AIReviewer.translate_chinese_to_vietnamese(chinese_title)
+        if not translated_title or translated_title == chinese_title:
+            translated_title = "Tổng Tài Lộ Diện Vả Mặt Kẻ Bội Bạc"
+
+        # Đảm bảo chữ hoa đầu từ đẹp mắt
+        vi_title_clean = " ".join([w.capitalize() for w in translated_title.split()])
+        safe_vi_title = f"Full Trọn Bộ | {vi_title_clean} - Phim Kịch Tính Cực Cuốn"
+
+        default_intro = (
+            f"Chào mừng cả nhà đã quay trở lại với kênh Cool Mèo Phim! Ngày hôm nay, chúng ta sẽ cùng theo dõi trọn bộ bộ phim vi kịch cực kỳ hấp dẫn và kịch tính mang tên {vi_title_clean}. "
+            f"Liệu nhân vật chính sẽ vượt qua âm mưu hãm hại và lật ngược tình thế như thế nào? Mời các bạn cùng theo dõi ngay sau đây, "
+            f"và đừng quên bấm Like cũng như Đăng ký kênh để ủng hộ Cool Mèo Phim nhé!"
+        )
         default_outro = (
             "Hành trình của bộ phim hôm nay đến đây là kết thúc rồi! Các bạn thấy cái kết này đã đủ hả hê chưa? "
             "Nếu thấy hay thì đừng quên nhấn Like và bấm Đăng ký kênh Cool Mèo Phim, bật chuông thông báo để cùng đón xem những bộ phim kịch tính tiếp theo vào ngày mai nhé. "
@@ -41,10 +93,10 @@ class AIReviewer:
         )
 
         package = {
-            "vietnamese_title": f"Full Trọn Bộ | {chinese_title}",
+            "vietnamese_title": safe_vi_title,
             "thumbnail_hook": "VẢ MẶT KẺ ÁC",
-            "thumbnail_sub": "ĐẠI GIA LỘ THÂN PHẬN",
-            "voice_intro": "",
+            "thumbnail_sub": "LỘ THÂN PHẬN",
+            "voice_intro": default_intro,
             "voice_outro": default_outro,
             "description": "",
             "tags": ["reviewphim", "phimngan", "phimhay", "tomtatphim", "haomon", "tongtai", "xuhuong"]
@@ -55,7 +107,7 @@ class AIReviewer:
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key={gemini_key.strip()}"
                 prompt = (
                     f"Bạn là biên tập viên review phim vi kịch Trung Quốc triệu view trên YouTube (kênh @CoolMeoPhim phong cách giống Triệu Vy Review, Gấu Phim).\n"
-                    f"Bộ phim gốc Trung Quốc có tên: '{chinese_title}'.\n\n"
+                    f"Bộ phim gốc Trung Quốc có tên: '{chinese_title}' (tạm dịch nghĩa tiếng Việt: '{translated_title}').\n\n"
                     f"Hãy sáng tạo một gói nội dung review phim hoàn chỉnh bằng tiếng Việt:\n"
                     f"1. vietnamese_title: Tiêu đề giật gân, cuốn hút, chuẩn phong cách review phim, bắt buộc có tiền tố 'Full Trọn Bộ | ', độ dài từ 65 đến 95 ký tự.\n"
                     f"2. thumbnail_hook: Đúng 1 cụm từ 3-5 chữ in hoa cực sốc để đặt lên ảnh bìa (ví dụ: VỢ CŨ PHẢN BỘI, ÉP NÀNG DÂU PHÁ THAI, ĐẠI GIA GIẢ ĂN MÀY, VẢ MẶT TIỂU TAM).\n"
@@ -63,7 +115,7 @@ class AIReviewer:
                     f"4. voice_intro: Đoạn văn thuyết minh dẫn chuyện mở đầu cực kỳ gay cấn, lôi cuốn, văn phong kích thích tò mò tột độ dài khoảng 60-90 từ để đọc lồng tiếng trong 25-35 giây đầu của video.\n"
                     f"5. voice_outro: Đoạn thuyết minh kết phim 35-50 từ chốt lại cái kết, và kêu gọi hành động (CTA) thật cuốn hút: 'Cái kết của bộ phim hôm nay thật hả hê đúng không các bạn! Nếu thấy hay thì đừng quên nhấn Like và bấm Đăng ký kênh Cool Mèo Phim, bật chuông thông báo để cùng đón xem những tập phim kịch tính tiếp theo nhé. Cảm ơn cả nhà rất nhiều!'\n"
                     f"6. summary_hook: 2-3 câu tóm tắt mồi câu hấp dẫn cho phần đầu mô tả video.\n\n"
-                    f"Trả về kết quả dưới dạng JSON duy nhất:\n"
+                    f"Trả về kết quả dưới dạng JSON:\n"
                     f"{{\n"
                     f'  "vietnamese_title": "...",\n'
                     f'  "thumbnail_hook": "...",\n'
@@ -72,28 +124,45 @@ class AIReviewer:
                     f'  "voice_outro": "...",\n'
                     f'  "summary_hook": "..."\n'
                     f"}}\n"
-                    f"Chỉ trả về JSON thuần túy, không có thẻ markdown hay văn bản nào khác."
                 )
 
-                payload = {"contents": [{"parts": [{"text": prompt}]}]}
-                res = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=15)
+                payload = {
+                    "contents": [{"parts": [{"text": prompt}]}],
+                    "generationConfig": {
+                        "response_mime_type": "application/json"
+                    }
+                }
+                res = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=20)
                 if res.status_code == 200:
                     data = res.json()
                     candidates = data.get("candidates", [])
                     if candidates:
                         text_resp = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "").strip()
-                        # Làm sạch nếu có markdown ```json ... ```
                         text_resp = re.sub(r'^```json\s*', '', text_resp, flags=re.IGNORECASE)
                         text_resp = re.sub(r'```$', '', text_resp).strip()
-                        parsed = json.loads(text_resp)
 
-                        package["vietnamese_title"] = parsed.get("vietnamese_title", package["vietnamese_title"]).replace('"', '').strip()
-                        package["thumbnail_hook"] = parsed.get("thumbnail_hook", package["thumbnail_hook"]).replace('"', '').strip()
-                        package["thumbnail_sub"] = parsed.get("thumbnail_sub", package["thumbnail_sub"]).replace('"', '').strip()
-                        package["voice_intro"] = parsed.get("voice_intro", "").replace('"', '').strip()
-                        package["voice_outro"] = parsed.get("voice_outro", default_outro).replace('"', '').strip()
+                        parsed = {}
+                        try:
+                            parsed = json.loads(text_resp)
+                        except Exception:
+                            # Cứu hộ bằng Regex trích xuất từng trường nếu json.loads gặp lỗi ký tự
+                            for key in ["vietnamese_title", "thumbnail_hook", "thumbnail_sub", "voice_intro", "voice_outro", "summary_hook"]:
+                                m = re.search(r'"' + key + r'"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"', text_resp)
+                                if m:
+                                    parsed[key] = m.group(1).encode('utf-8').decode('unicode_escape', errors='ignore')
 
-                        hook_desc = parsed.get("summary_hook", "").strip()
+                        if parsed.get("vietnamese_title"):
+                            package["vietnamese_title"] = parsed["vietnamese_title"].replace('"', '').strip()
+                        if parsed.get("thumbnail_hook"):
+                            package["thumbnail_hook"] = parsed["thumbnail_hook"].replace('"', '').strip()
+                        if parsed.get("thumbnail_sub"):
+                            package["thumbnail_sub"] = parsed["thumbnail_sub"].replace('"', '').strip()
+                        if parsed.get("voice_intro"):
+                            package["voice_intro"] = parsed["voice_intro"].replace('"', '').strip()
+                        if parsed.get("voice_outro"):
+                            package["voice_outro"] = parsed["voice_outro"].replace('"', '').strip()
+
+                        hook_desc = parsed.get("summary_hook", "").strip() or f"Đón xem trọn bộ phim kịch tính cực cuốn tại kênh @CoolMeoPhim!"
                         package["description"] = (
                             f"🎬 {package['vietnamese_title']}\n\n"
                             f"🔥 {hook_desc}\n\n"
@@ -104,9 +173,9 @@ class AIReviewer:
                         LogManager.log(f"Gemini AI đã tạo gói review hoàn chỉnh kèm Outro CTA: '{package['vietnamese_title']}'", "SUCCESS", "AI_REVIEW")
                         return package
             except Exception as e:
-                LogManager.log(f"Lỗi khi gọi Gemini tạo kịch bản review: {e}. Kích hoạt bộ tạo dự phòng.", "WARNING", "AI_REVIEW")
+                LogManager.log(f"Lỗi khi gọi Gemini tạo kịch bản review: {e}. Sử dụng kịch bản dự phòng tiếng Việt chuẩn.", "WARNING", "AI_REVIEW")
 
-        # Bộ tạo dự phòng nếu không có mạng/lỗi API
+        # Bộ tạo dự phòng nếu không có mạng/lỗi API (100% Tiếng Việt)
         package["description"] = (
             f"🎬 {package['vietnamese_title']}\n\n"
             f"🔥 Đón xem trọn bộ phim kịch tính cực cuốn tại kênh @CoolMeoPhim! Cùng bình luận cảm nghĩ của bạn về diễn biến tập phim này nhé.\n\n"

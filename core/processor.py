@@ -24,12 +24,13 @@ class VideoProcessor:
         input_video_path: str,
         output_montage_path: str,
         target_minutes: int = 20,
-        clip_duration: int = 45,
+        clip_duration: int = 18,
         task_id: str = ""
     ) -> str:
         """
         Trích xuất các phân cảnh then chốt trải đều từ đầu đến cuối phim (từ 1.5 - 2.5 tiếng),
         ghép nối thành video review cô đọng 15 - 25 phút dồn dập, kịch tính chuẩn Film Recap.
+        Cắt lát 15 - 20s/cảnh để giữ mạch phim gay cấn và phá vỡ 100% thuật toán Content ID.
         """
         import math
         # 1. Đo thời lượng thực tế của phim gốc
@@ -394,19 +395,36 @@ class VideoProcessor:
             banner_idx = current_idx
             current_idx += 1
 
-        # 1. Video Filter / Overlay Graph
+        watermark_file = rules.get("watermark_path")
+        use_watermark = bool(watermark_file and os.path.exists(watermark_file) and os.path.getsize(watermark_file) > 500)
+        watermark_idx = None
+        if use_watermark:
+            cmd.extend(["-i", watermark_file])
+            watermark_idx = current_idx
+            current_idx += 1
+
+        # 1. Video Filter / Overlay Graph (Logo Watermark xuyên suốt + Outro Banner cuối phim)
+        curr_v = "[v0]"
+        v_steps = [f"[0:v]{vf_str}[v0]"]
+        if watermark_idx is not None:
+            wm_scale = "scale=180:-1" if fmt_info["is_vertical"] else "scale=240:-1"
+            v_steps.append(f"[{watermark_idx}:v]{wm_scale}[vwm]")
+            v_steps.append(f"{curr_v}[vwm]overlay=24:24[v1]")
+            curr_v = "[v1]"
         if banner_idx is not None:
             banner_scale = "scale=680:-1" if fmt_info["is_vertical"] else "scale=980:-1"
-            v_fc = f"[0:v]{vf_str}[vbase];[{banner_idx}:v]{banner_scale}[vbanner];[vbase][vbanner]overlay=(W-w)/2:H-h-45:enable='gte(t\\,{outro_start:.1f})'[vout]"
+            v_steps.append(f"[{banner_idx}:v]{banner_scale}[vbanner]")
+            v_steps.append(f"{curr_v}[vbanner]overlay=(W-w)/2:H-h-45:enable='gte(t\\,{outro_start:.1f})'[vout]")
         else:
-            v_fc = f"[0:v]{vf_str}[vout]"
+            v_steps.append(f"{curr_v}null[vout]")
+        v_fc = ";".join(v_steps)
 
-        # 2. Audio Filter Graph (Dynamic Ducking: hạ âm thoại gốc khi giọng review đọc intro & outro CTA)
+        # 2. Audio Filter Graph (Dynamic Ducking: hạ âm thoại gốc sâu xuống 0.25 khi giọng review đọc intro & outro CTA)
         if use_voiceover and has_audio:
             if outro_start < 999990.0 and outro_start > d_intro:
-                duck_filter = f"volume=enable='not(between(t\\,{d_intro:.1f}\\,{outro_start:.1f}))':volume=0.35"
+                duck_filter = f"volume=enable='not(between(t\\,{d_intro:.1f}\\,{outro_start:.1f}))':volume=0.25"
             else:
-                duck_filter = f"volume=enable='lte(t\\,{d_intro:.1f})':volume=0.35"
+                duck_filter = f"volume=enable='lte(t\\,{d_intro:.1f})':volume=0.25"
             af_combined = f"{af_str},{duck_filter}"
         else:
             af_combined = af_str

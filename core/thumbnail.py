@@ -162,6 +162,33 @@ class ThumbnailGenerator:
             return None
 
     @staticmethod
+    def create_watermark_badge(
+        task_id: str,
+        channel_name: str = "@CoolMeoPhim"
+    ) -> Optional[str]:
+        """Tạo watermark logo kênh nhỏ gọn, bán trong suốt để chèn ở góc màn hình suốt video."""
+        output_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "storage", "temp"))
+        os.makedirs(output_dir, exist_ok=True)
+        out_file = os.path.join(output_dir, f"watermark_{task_id}.png")
+        try:
+            w, h = 240, 44
+            img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(img)
+            draw.rounded_rectangle([(2, 2), (w - 2, h - 2)], radius=12, fill=(15, 15, 20, 140), outline=(255, 215, 0, 180), width=2)
+            font_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "static", "fonts", "font.ttf"))
+            try:
+                font = ImageFont.truetype(font_path, 19)
+            except Exception:
+                font = ImageFont.load_default()
+            draw.text((w // 2, h // 2), f"🎬 {channel_name}", fill=(255, 255, 255, 220), font=font, anchor="mm")
+            img.save(out_file, "PNG")
+            LogManager.log(f"Đã tạo Watermark Badge kênh: {out_file}", "SUCCESS", "THUMBNAIL")
+            return out_file
+        except Exception as e:
+            LogManager.log(f"Lỗi khi tạo Watermark Badge: {e}", "WARNING", "THUMBNAIL")
+            return None
+
+    @staticmethod
     def create_thumbnail(
         video_path: Optional[str],
         fallback_image_path: Optional[str],

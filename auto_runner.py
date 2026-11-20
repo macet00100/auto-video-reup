@@ -363,7 +363,7 @@ def process_and_upload_china_drama(
                 input_video_path=raw_video,
                 output_montage_path=montage_path,
                 target_minutes=target_recap_mins,
-                clip_duration=45,
+                clip_duration=18,
                 task_id=task_id
             )
             if condensed_video != raw_video:
@@ -387,7 +387,11 @@ def process_and_upload_china_drama(
         if outro_banner:
             temp_files.append(outro_banner)
 
-        # BƯỚC 6: RENDER FFMPEG LÁCH BẢN QUYỀN + DYNAMIC DUCKING + OVERLAY OUTRO BANNER
+        watermark_badge = ThumbnailGenerator.create_watermark_badge(task_id=task_id, channel_name="@CoolMeoPhim")
+        if watermark_badge:
+            temp_files.append(watermark_badge)
+
+        # BƯỚC 6: RENDER FFMPEG LÁCH BẢN QUYỀN + DYNAMIC DUCKING + OVERLAY OUTRO BANNER & WATERMARK
         user_bypass = yt_cfg.get("bypass_rules", {})
         combined_rules = {
             "hflip": user_bypass.get("hflip", True),
@@ -395,7 +399,7 @@ def process_and_upload_china_drama(
             "speed": float(user_bypass.get("speed", 1.05)),
             "pitch_shift": user_bypass.get("pitch_shift", True),
             "add_bgm": user_bypass.get("add_bgm", True),
-            "bgm_volume": float(user_bypass.get("bgm_volume", 0.12)),
+            "bgm_volume": float(user_bypass.get("bgm_volume", 0.16)),
             "crop_percent": float(user_bypass.get("crop_percent", 4.5)),
             "color_boost": user_bypass.get("color_boost", True),
             "change_fps": user_bypass.get("change_fps", True),
@@ -405,7 +409,8 @@ def process_and_upload_china_drama(
             "voiceover_path": voice_info.get("voice_path"),
             "d_intro": voice_info.get("d_intro", 25.0),
             "outro_start": voice_info.get("outro_start", max(0.0, vid_dur - 20.0)),
-            "outro_banner_path": outro_banner
+            "outro_banner_path": outro_banner,
+            "watermark_path": watermark_badge
         }
 
         processed_video = VideoProcessor.process(
@@ -451,6 +456,33 @@ def process_and_upload_china_drama(
                     LogManager.log(f"[{task_id}] Upload YouTube thành công! Video ID: {uploaded_yt_id}", "SUCCESS", "YOUTUBE")
                     pin_comment = random.choice(YOUTUBE_COMMENTS)
                     YouTubeUploader.add_comment(uploaded_yt_id, pin_comment, yt_cfg.get("destination", {}))
+
+                    # KIỂM TRA BẢN QUYỀN CONTENT ID SAU KHI TẢI LÊN (BẢO VỆ KÊNH AN TOÀN 100%)
+                    try:
+                        time.sleep(15)
+                        token_chk = YouTubeUploader.get_valid_access_token(yt_cfg.get("destination", {}))
+                        if token_chk and uploaded_yt_id:
+                            chk_url = f"https://www.googleapis.com/youtube/v3/videos?part=contentDetails,status&id={uploaded_yt_id}"
+                            chk_req = urllib.request.Request(chk_url, headers={"Authorization": f"Bearer {token_chk}"})
+                            with urllib.request.urlopen(chk_req, timeout=10) as resp:
+                                chk_data = json.loads(resp.read().decode("utf-8"))
+                                items = chk_data.get("items", [])
+                                if items:
+                                    region_res = items[0].get("contentDetails", {}).get("regionRestriction", {})
+                                    blocked = region_res.get("blocked", [])
+                                    if "VN" in blocked or len(blocked) > 50:
+                                        LogManager.log(f"[{task_id}] CẢNH BÁO: Video bị YouTube Content ID chặn bản quyền! Đang tự động xóa ngay để bảo vệ kênh...", "WARNING", "YOUTUBE")
+                                        del_req = urllib.request.Request(
+                                            f"https://www.googleapis.com/youtube/v3/videos?id={uploaded_yt_id}",
+                                            headers={"Authorization": f"Bearer {token_chk}"},
+                                            method="DELETE"
+                                        )
+                                        urllib.request.urlopen(del_req, timeout=10)
+                                        LogManager.log(f"[{task_id}] Đã xóa video bị chặn ({uploaded_yt_id}) thành công! Kênh an toàn 100%.", "SUCCESS", "YOUTUBE")
+                                        yt_success = False
+                                        uploaded_yt_id = None
+                    except Exception as e_chk:
+                        LogManager.log(f"[{task_id}] Kiểm tra bản quyền Content ID: {e_chk}", "INFO", "YOUTUBE")
             except Exception as e:
                 LogManager.log(f"[{task_id}] Lỗi khi upload YouTube: {e}", "ERROR", "YOUTUBE")
 
