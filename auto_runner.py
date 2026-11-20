@@ -242,20 +242,21 @@ def run_china_raw_pipeline(cfg: Dict[str, Any], destination_titles: List[str], d
         if is_dup:
             continue
 
-        selected_drama = cand
-        break
+        LogManager.log(f"Đang xử lý phim ứng viên kịch tính: '{raw_title}' (Điểm kịch tính: {cand['score']})", "INFO", "CHINA_RAW")
+        success = process_and_upload_china_drama(
+            drama_info=cand,
+            upload_to_yt=yt_cfg.get("enabled", True),
+            upload_to_fb=fb_cfg.get("enabled", True),
+            cfg=cfg
+        )
+        if success:
+            LogManager.log(f"Đã xử lý và xuất bản thành công phim: '{raw_title}'", "SUCCESS", "CHINA_RAW")
+            return True
+        else:
+            LogManager.log(f"Phim '{raw_title}' không tải được từ CDN hoặc xử lý thất bại -> Tự động thử tiếp phim tiếp theo trong danh sách...", "WARNING", "CHINA_RAW")
 
-    if not selected_drama:
-        LogManager.log("Toàn bộ phim mới quét được hôm nay đều đã được xử lý hoặc trùng lặp.", "INFO", "CHINA_RAW")
-        return False
-
-    LogManager.log(f"Đã chọn bộ phim độc quyền đắt giá nhất: '{selected_drama['raw_title']}' (Điểm kịch tính: {selected_drama['score']})", "SUCCESS", "CHINA_RAW")
-    return process_and_upload_china_drama(
-        drama_info=selected_drama,
-        upload_to_yt=yt_cfg.get("enabled", True),
-        upload_to_fb=fb_cfg.get("enabled", True),
-        cfg=cfg
-    )
+    LogManager.log("Toàn bộ phim mới quét được hôm nay đều đã được xử lý, trùng lặp hoặc CDN không phản hồi.", "INFO", "CHINA_RAW")
+    return False
 
 def get_next_scheduled_slot() -> Tuple[datetime, str, int]:
     """

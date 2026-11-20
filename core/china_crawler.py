@@ -145,9 +145,15 @@ class ChinaCrawler:
         LogManager.log(f"Đang tải video từ M3U8 trực tiếp: {m3u8_url[:70]}...", "INFO", "CRAWLER")
         t0 = time.time()
         try:
+            parsed_url = urllib.parse.urlparse(m3u8_url)
+            referer = f"{parsed_url.scheme}://{parsed_url.netloc}/"
+            headers_str = (
+                "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\r\n"
+                f"Referer: {referer}\r\n"
+            )
             cmd = [
                 "ffmpeg", "-y",
-                "-headers", "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)\r\n",
+                "-headers", headers_str,
                 "-i", m3u8_url,
                 "-t", str(max_duration_seconds),
                 "-c", "copy",
