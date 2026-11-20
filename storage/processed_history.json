@@ -200,7 +200,8 @@
     "BchAWkbFd5Q",
     "aHwAHATFlBY",
     "cn_167251",
-    "cn_167259"
+    "cn_167259",
+    "cn_98623"
   ],
   "history": {
     "e93_3WKmFHg": {
@@ -1688,6 +1689,17 @@
       "extra": {
         "deleted": true,
         "reason": "Deleted to re-run with clean cinematic thumbnail and muted Chinese audio"
+      }
+    },
+    "cn_98623": {
+      "title": "Review Phim Tổng Tài Lạnh Lùng Cưới Chớp Nhoáng Nào Ngờ Vợ Hợp Đồng Lại Là Thiên Kim",
+      "youtube_uploaded": true,
+      "facebook_uploaded": true,
+      "processed_at": "2026-11-20T21:36:51.822483",
+      "extra": {
+        "raw_title": "闪婚总裁契约妻",
+        "scheduled_utc": "2026-11-20T15:35:50.000Z",
+        "scheduled_vn": "22:35 ngày 20/11/2026"
       }
     }
   }
