@@ -359,6 +359,24 @@ def process_and_upload_china_drama(
             LogManager.log(f"[{task_id}] Không thể tải video từ link M3U8.", "ERROR", "CHINA_RAW")
             return False
 
+        # BƯỚC 5.5: TẠO BẢN REVIEW CÔ ĐỌNG DỒN DẬP (15 - 25 PHÚT CHUẨN FILM RECAP)
+        review_mode = general_cfg.get("review_mode", "condensed_recap")
+        target_recap_mins = general_cfg.get("target_recap_minutes", 20)
+        video_to_process = raw_video
+
+        if review_mode == "condensed_recap":
+            montage_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "storage", "temp", f"montage_{task_id}.mp4"))
+            condensed_video = VideoProcessor.create_condensed_recap_montage(
+                input_video_path=raw_video,
+                output_montage_path=montage_path,
+                target_minutes=target_recap_mins,
+                clip_duration=45,
+                task_id=task_id
+            )
+            if condensed_video != raw_video:
+                temp_files.append(condensed_video)
+                video_to_process = condensed_video
+
         # BƯỚC 6: RENDER FFMPEG LÁCH BẢN QUYỀN + MIX GIỌNG ĐỌC THUYẾT MINH
         user_bypass = yt_cfg.get("bypass_rules", {})
         combined_rules = {
@@ -378,7 +396,7 @@ def process_and_upload_china_drama(
         }
 
         processed_video = VideoProcessor.process(
-            input_path=raw_video,
+            input_path=video_to_process,
             task_id=task_id,
             rules=combined_rules
         )

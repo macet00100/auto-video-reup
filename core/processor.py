@@ -7,6 +7,99 @@ from core.task_queue import LogManager
 
 class VideoProcessor:
     @staticmethod
+    def create_condensed_recap_montage(
+        input_video_path: str,
+        output_montage_path: str,
+        target_minutes: int = 20,
+        clip_duration: int = 45,
+        task_id: str = ""
+    ) -> str:
+        """
+        Trích xuất các phân cảnh then chốt trải đều từ đầu đến cuối phim (từ 1.5 - 2.5 tiếng),
+        ghép nối thành video review cô đọng 15 - 25 phút dồn dập, kịch tính chuẩn Film Recap.
+        """
+        import math
+        # 1. Đo thời lượng thực tế của phim gốc
+        dur = 3600.0
+        try:
+            probe_cmd = [
+                "ffprobe", "-v", "error", "-show_entries", "format=duration",
+                "-of", "default=noprint_wrappers=1:nokey=1", input_video_path
+            ]
+            res = subprocess.run(probe_cmd, capture_output=True, text=True, check=True)
+            dur = float(res.stdout.strip())
+        except Exception:
+            pass
+
+        target_seconds = target_minutes * 60
+        # Nếu phim vốn dĩ đã ngắn <= target_minutes thì giữ nguyên
+        if dur <= target_seconds * 1.15:
+            LogManager.log(f"[{task_id}] Phim gốc đã ngắn ({dur/60:.1f} phút) -> Giữ nguyên mạch phim.", "INFO", "PROCESSOR")
+            return input_video_path
+
+        # 2. Tính toán các điểm cắt (trải đều khắp câu chuyện từ đầu đến kết cục)
+        num_clips = max(8, math.ceil(target_seconds / clip_duration))
+        step = (dur - clip_duration - 5) / (num_clips - 1) if num_clips > 1 else 0
+        LogManager.log(f"[{task_id}] Đang cắt lọc {num_clips} phân cảnh đắt giá (mỗi đoạn {clip_duration}s) trải dài suốt {dur/60:.1f} phút phim...", "INFO", "PROCESSOR")
+
+        temp_dir = os.path.dirname(output_montage_path)
+        slice_files = []
+        concat_txt = os.path.join(temp_dir, f"cuts_{task_id}.txt")
+
+        try:
+            for i in range(num_clips):
+                start_sec = max(0, int(i * step))
+                part_file = os.path.join(temp_dir, f"slice_{task_id}_{i}.mp4")
+                cut_cmd = [
+                    "ffmpeg", "-y",
+                    "-ss", str(start_sec),
+                    "-t", str(clip_duration),
+                    "-i", input_video_path,
+                    "-c", "copy",
+                    part_file
+                ]
+                subprocess.run(cut_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                if os.path.exists(part_file) and os.path.getsize(part_file) > 10000:
+                    slice_files.append(part_file)
+
+            if len(slice_files) < 3:
+                LogManager.log(f"[{task_id}] Cắt trích đoạn không đủ số lượng, sử dụng video gốc.", "WARNING", "PROCESSOR")
+                return input_video_path
+
+            # 3. Tạo file danh sách ghép nối
+            with open(concat_txt, "w", encoding="utf-8") as f:
+                for sf in slice_files:
+                    f.write("file " + chr(39) + sf.replace("\\", "/") + chr(39) + "\n")
+
+            # 4. Ghép nối siêu tốc bằng concat demuxer
+            concat_cmd = [
+                "ffmpeg", "-y",
+                "-f", "concat",
+                "-safe", "0",
+                "-i", concat_txt,
+                "-c", "copy",
+                output_montage_path
+            ]
+            res_concat = subprocess.run(concat_cmd, capture_output=True, text=True)
+            if res_concat.returncode == 0 and os.path.exists(output_montage_path) and os.path.getsize(output_montage_path) > 1000000:
+                final_dur = len(slice_files) * clip_duration / 60
+                LogManager.log(f"[{task_id}] Tạo bản tóm tắt cô đọng thành công! Thời lượng: ~{final_dur:.1f} phút ({len(slice_files)} phân cảnh dồn dập).", "SUCCESS", "PROCESSOR")
+                return output_montage_path
+            else:
+                LogManager.log(f"[{task_id}] Ghép concat thất bại, sử dụng video gốc.", "WARNING", "PROCESSOR")
+                return input_video_path
+
+        finally:
+            # Dọn dẹp các lát cắt tạm
+            if os.path.exists(concat_txt):
+                try: os.remove(concat_txt)
+                except Exception: pass
+            for sf in slice_files:
+                if os.path.exists(sf):
+                    try: os.remove(sf)
+                    except Exception: pass
+
+    @staticmethod
     def detect_video_format(input_path: str, task_id: str = "") -> Dict[str, Any]:
         """
         Tự động phân loại định dạng video và phát hiện dải viền đen (Pillarbox):
