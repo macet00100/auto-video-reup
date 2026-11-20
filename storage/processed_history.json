@@ -1682,13 +1682,12 @@
     },
     "cn_167259": {
       "title": "Full Trọn Bộ | Tôi Đã Làm Cả Thế Giới Phải Ngỡ Ngàng Trong Một Cuộc Thi Toán Học. - Phim Kịch Tính Cực Cuốn",
-      "youtube_uploaded": true,
-      "facebook_uploaded": true,
+      "youtube_uploaded": false,
+      "facebook_uploaded": false,
       "processed_at": "2026-11-20T14:27:37.933362",
       "extra": {
-        "raw_title": "我在数学竞赛打脸全球",
-        "scheduled_utc": "2026-11-21T10:30:00.000Z",
-        "scheduled_vn": "17:30 ngày 21/11/2026"
+        "deleted": true,
+        "reason": "Deleted to re-run with clean cinematic thumbnail and muted Chinese audio"
       }
     }
   }
