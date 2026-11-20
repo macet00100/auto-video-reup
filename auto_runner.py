@@ -6,7 +6,8 @@ import feedparser
 import re
 import urllib.request
 import random
-from typing import Dict, Any, List
+from datetime import datetime, timezone, timedelta
+from typing import Dict, Any, List, Tuple
 
 from core.config import ConfigManager
 from core.task_queue import LogManager
@@ -256,6 +257,46 @@ def run_china_raw_pipeline(cfg: Dict[str, Any], destination_titles: List[str], d
         cfg=cfg
     )
 
+def get_next_scheduled_slot() -> Tuple[datetime, str, int]:
+    """
+    Tính toán khung giờ vàng tiếp theo chuẩn giờ Việt Nam (UTC+7) để hẹn giờ đăng:
+    - Khung 1: 11:30 (Trưa)
+    - Khung 2: 17:30 (Chiều tan tầm)
+    - Khung 3: 21:00 (Tối muộn)
+    Tự động tránh các khung giờ đã được xếp lịch trước đó, xếp xoay vòng sang các slot tiếp theo.
+    """
+    tz_vn = timezone(timedelta(hours=7))
+    now_vn = datetime.now(tz_vn)
+    slots = [(11, 30), (17, 30), (21, 0)]
+
+    scheduled_isostrings = set()
+    try:
+        hist_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "storage", "processed_history.json"))
+        if os.path.exists(hist_path):
+            with open(hist_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                hist_dict = data.get("history", {}) if isinstance(data, dict) else {}
+                for v in hist_dict.values():
+                    extra = v.get("extra", {})
+                    s_utc = extra.get("scheduled_utc")
+                    if s_utc:
+                        scheduled_isostrings.add(s_utc)
+    except Exception:
+        pass
+
+    for day_offset in range(4):
+        check_date = (now_vn + timedelta(days=day_offset)).date()
+        for hour, minute in slots:
+            slot_dt = datetime(check_date.year, check_date.month, check_date.day, hour, minute, tzinfo=tz_vn)
+            if slot_dt < now_vn + timedelta(minutes=25):
+                continue
+            iso_utc = slot_dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+            if iso_utc not in scheduled_isostrings:
+                return slot_dt, iso_utc, int(slot_dt.timestamp())
+
+    fallback_dt = datetime(now_vn.year, now_vn.month, now_vn.day, 11, 30, tzinfo=tz_vn) + timedelta(days=1)
+    return fallback_dt, fallback_dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"), int(fallback_dt.timestamp())
+
 def process_and_upload_china_drama(
     drama_info: Dict[str, Any],
     upload_to_yt: bool,
@@ -343,15 +384,26 @@ def process_and_upload_china_drama(
         )
         temp_files.append(processed_video)
 
-        # BƯỚC 7: XUẤT BẢN LÊN YOUTUBE & FACEBOOK
+        # BƯỚC 7: XUẤT BẢN HOẶC HẸN GIỜ ĐĂNG LÊN YOUTUBE & FACEBOOK
         yt_success = False
         fb_success = False
         uploaded_yt_id = None
         uploaded_fb_id = None
 
+        is_scheduled = general_cfg.get("schedule_mode", "scheduled") == "scheduled"
+        yt_publish_at = None
+        fb_schedule_ts = None
+        slot_vn_str = ""
+
+        if is_scheduled:
+            slot_dt, yt_publish_at, fb_schedule_ts = get_next_scheduled_slot()
+            slot_vn_str = slot_dt.strftime("%H:%M ngày %d/%m/%Y")
+            LogManager.log(f"[{task_id}] ⏰ Đã lên lịch hẹn giờ đăng video: {slot_vn_str} (Giờ VN)", "SUCCESS", "SCHEDULER")
+
         if upload_to_yt:
             seo_tags = AIRewriter.get_recommended_tags(new_title)
-            LogManager.log(f"[{task_id}] Đang tải phim review độc quyền lên YouTube...", "INFO", "YOUTUBE")
+            action_desc = f"Hẹn giờ đăng ({slot_vn_str})" if is_scheduled else "Đăng ngay công khai"
+            LogManager.log(f"[{task_id}] Đang tải phim review độc quyền lên YouTube [{action_desc}]...", "INFO", "YOUTUBE")
             try:
                 yt_res = YouTubeUploader.upload(
                     video_path=processed_video,
@@ -359,7 +411,8 @@ def process_and_upload_china_drama(
                     description=yt_description,
                     thumbnail_path=thumb_path,
                     config=yt_cfg.get("destination", {}),
-                    tags=seo_tags
+                    tags=seo_tags,
+                    publish_at=yt_publish_at
                 )
                 yt_success = yt_res.get("success", False) if isinstance(yt_res, dict) else False
                 if yt_success:
@@ -377,14 +430,16 @@ def process_and_upload_china_drama(
                 f"👉 Bấm Like và Theo Dõi Fanpage để cập nhật ngay những tập phim mới nhất mỗi ngày!\n\n"
                 f"#reviewphim #phimhay #phimngantrungquoc #tomtatphim #haomon #xuhuong"
             )
-            LogManager.log(f"[{task_id}] Đang tải phim review lên Facebook...", "INFO", "FACEBOOK")
+            action_desc = f"Hẹn giờ đăng ({slot_vn_str})" if is_scheduled else "Đăng ngay công khai"
+            LogManager.log(f"[{task_id}] Đang tải phim review lên Facebook [{action_desc}]...", "INFO", "FACEBOOK")
             try:
                 fb_res = FacebookUploader.upload(
                     video_path=processed_video,
                     title=new_title,
                     description=fb_desc,
                     thumbnail_path=thumb_path,
-                    config=fb_cfg.get("destination", {})
+                    config=fb_cfg.get("destination", {}),
+                    scheduled_publish_time=fb_schedule_ts
                 )
                 fb_success = fb_res.get("success", False) if isinstance(fb_res, dict) else False
                 if fb_success:
@@ -398,9 +453,14 @@ def process_and_upload_china_drama(
         # KHÔNG TẠO SHORTS (Shorts disabled)
         # BƯỚC 8: LƯU LỊCH SỬ & ĐỒNG BỘ GIT
         if yt_success or fb_success:
-            HistoryManager.record_processed(unique_id, new_title, yt_uploaded=yt_success, fb_uploaded=fb_success, extra={"raw_title": raw_title})
+            extra_meta = {
+                "raw_title": raw_title,
+                "scheduled_utc": yt_publish_at,
+                "scheduled_vn": slot_vn_str
+            }
+            HistoryManager.record_processed(unique_id, new_title, yt_uploaded=yt_success, fb_uploaded=fb_success, extra=extra_meta)
             HistoryManager.sync_to_git(f"chore: save china review video {unique_id} [skip ci]")
-            LogManager.log(f"[{task_id}] Đã hoàn tất đăng video độc quyền và lưu trữ lịch sử!", "SUCCESS", "CHINA_RAW")
+            LogManager.log(f"[{task_id}] Đã hoàn tất đăng video độc quyền ({slot_vn_str if is_scheduled else 'ngay lập tức'}) và lưu lịch sử!", "SUCCESS", "CHINA_RAW")
             return True
         else:
             LogManager.log(f"[{task_id}] Cả hai nền tảng upload đều thất bại.", "ERROR", "CHINA_RAW")

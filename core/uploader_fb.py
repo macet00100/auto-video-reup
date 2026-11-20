@@ -11,7 +11,8 @@ class FacebookUploader:
         title: str,
         description: str,
         thumbnail_path: Optional[str] = None,
-        config: Dict[str, Any] = None
+        config: Dict[str, Any] = None,
+        scheduled_publish_time: Optional[int] = None
     ) -> Dict[str, Any]:
         if config is None:
             config = {}
@@ -107,17 +108,23 @@ class FacebookUploader:
                     end_offset = new_end
 
             # BƯỚC 3: HOÀN TẤT & ĐĂNG BÀI (FINISH PHASE)
-            LogManager.log("Đã tải xong toàn bộ file video! Đang xuất bản bài đăng Facebook...", "INFO", "FACEBOOK")
+            LogManager.log("Đã tải xong toàn bộ file video! Đang xuất bản hoặc đặt lịch đăng bài Facebook...", "INFO", "FACEBOOK")
+            finish_payload = {
+                'upload_phase': 'finish',
+                'upload_session_id': session_id,
+                'title': title[:100],
+                'description': description,
+                'access_token': access_token
+            }
+            if scheduled_publish_time and scheduled_publish_time > time.time() + 600:
+                finish_payload['published'] = False
+                finish_payload['scheduled_publish_time'] = int(scheduled_publish_time)
+            else:
+                finish_payload['published'] = True
+
             finish_res = requests.post(
                 api_url,
-                data={
-                    'upload_phase': 'finish',
-                    'upload_session_id': session_id,
-                    'title': title[:100],
-                    'description': description,
-                    'access_token': access_token,
-                    'published': True
-                },
+                data=finish_payload,
                 timeout=120
             )
             finish_data = finish_res.json()

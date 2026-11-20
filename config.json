@@ -2,6 +2,7 @@
     "general": {
         "source_mode": "china_raw",
         "enable_shorts": false,
+        "schedule_mode": "scheduled",
         "gemini_api_key": "",
         "openai_api_key": "",
         "scheduler_enabled": true,
@@ -11,7 +12,7 @@
         "max_duration_minutes": 180,
         "clean_temp_after_upload": true,
         "proxy": "",
-        "max_daily_uploads": 2
+        "max_daily_uploads": 3
     },
     "youtube": {
         "enabled": true,

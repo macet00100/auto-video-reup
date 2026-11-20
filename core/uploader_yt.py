@@ -61,7 +61,8 @@ class YouTubeUploader:
         description: str,
         thumbnail_path: Optional[str] = None,
         config: Dict[str, Any] = None,
-        tags: Optional[List[str]] = None
+        tags: Optional[List[str]] = None,
+        publish_at: Optional[str] = None
     ) -> Dict[str, Any]:
         if config is None:
             config = {}
@@ -107,7 +108,8 @@ class YouTubeUploader:
                     "defaultAudioLanguage": "vi"
                 },
                 "status": {
-                    "privacyStatus": privacy_status
+                    "privacyStatus": "private" if publish_at else privacy_status,
+                    **({"publishAt": publish_at} if publish_at else {})
                 }
             }
             
