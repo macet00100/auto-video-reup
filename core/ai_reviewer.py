@@ -79,12 +79,11 @@ class AIReviewer:
 
         # Đảm bảo chữ hoa đầu từ đẹp mắt
         vi_title_clean = " ".join([w.capitalize() for w in translated_title.split()])
-        safe_vi_title = f"Full Trọn Bộ | {vi_title_clean} - Phim Kịch Tính Cực Cuốn"
+        safe_vi_title = f"Review Phim | {vi_title_clean}"
 
         default_intro = (
-            f"Chào mừng cả nhà đã quay trở lại với kênh Cool Mèo Phim! Ngày hôm nay, chúng ta sẽ cùng theo dõi trọn bộ bộ phim vi kịch cực kỳ hấp dẫn và kịch tính mang tên {vi_title_clean}. "
-            f"Liệu nhân vật chính sẽ vượt qua âm mưu hãm hại và lật ngược tình thế như thế nào? Mời các bạn cùng theo dõi ngay sau đây, "
-            f"và đừng quên bấm Like cũng như Đăng ký kênh để ủng hộ Cool Mèo Phim nhé!"
+            f"Chào mừng cả nhà đã quay trở lại với kênh Cool Mèo Phim! Ngày hôm nay, chúng ta sẽ cùng theo dõi bộ phim vi kịch cực kỳ hấp dẫn và kịch tính mang tên {vi_title_clean}. "
+            f"Liệu nhân vật chính sẽ vượt qua những âm mưu hãm hại và lật ngược tình thế như thế nào? Mời các bạn cùng theo dõi diễn biến gay cấn của câu chuyện ngay sau đây!"
         )
         default_outro = (
             "Hành trình của bộ phim hôm nay đến đây là kết thúc rồi! Các bạn thấy cái kết này đã đủ hả hê chưa? "
@@ -109,11 +108,11 @@ class AIReviewer:
                     f"Bạn là biên tập viên review phim vi kịch Trung Quốc triệu view trên YouTube (kênh @CoolMeoPhim phong cách giống Triệu Vy Review, Gấu Phim).\n"
                     f"Bộ phim gốc Trung Quốc có tên: '{chinese_title}' (tạm dịch nghĩa tiếng Việt: '{translated_title}').\n\n"
                     f"Hãy sáng tạo một gói nội dung review phim hoàn chỉnh bằng tiếng Việt:\n"
-                    f"1. vietnamese_title: Tiêu đề giật gân, cuốn hút, chuẩn phong cách review phim, bắt buộc có tiền tố 'Full Trọn Bộ | ', độ dài từ 65 đến 95 ký tự.\n"
+                    f"1. vietnamese_title: Tiêu đề giật gân, cuốn hút, chuẩn phong cách review phim. BẮT BUỘC bắt đầu bằng 'Review Phim | ' (hoặc 'Review Phim: '), TUYỆT ĐỐI KHÔNG dùng từ 'Full Trọn Bộ', độ dài từ 65 đến 95 ký tự.\n"
                     f"2. thumbnail_hook: Đúng 1 cụm từ 3-5 chữ in hoa cực sốc để đặt lên ảnh bìa (ví dụ: VỢ CŨ PHẢN BỘI, ÉP NÀNG DÂU PHÁ THAI, ĐẠI GIA GIẢ ĂN MÀY, VẢ MẶT TIỂU TAM).\n"
                     f"3. thumbnail_sub: Cụm từ phụ 3-4 chữ in hoa (ví dụ: CÁI KẾT HẢ HÊ, LỘ THÂN PHẬN, CẢ NHÀ QUỲ LẠY).\n"
-                    f"4. voice_intro: Đoạn văn thuyết minh dẫn chuyện mở đầu cực kỳ gay cấn, lôi cuốn, văn phong kích thích tò mò tột độ dài khoảng 60-90 từ để đọc lồng tiếng trong 25-35 giây đầu của video.\n"
-                    f"5. voice_outro: Đoạn thuyết minh kết phim 35-50 từ chốt lại cái kết, và kêu gọi hành động (CTA) thật cuốn hút: 'Cái kết của bộ phim hôm nay thật hả hê đúng không các bạn! Nếu thấy hay thì đừng quên nhấn Like và bấm Đăng ký kênh Cool Mèo Phim, bật chuông thông báo để cùng đón xem những tập phim kịch tính tiếp theo nhé. Cảm ơn cả nhà rất nhiều!'\n"
+                    f"4. voice_intro: Đoạn văn thuyết minh dẫn chuyện mở đầu cực kỳ gay cấn, lôi cuốn, văn phong kích thích tò mò tột độ dài khoảng 60-90 từ để đọc lồng tiếng trong 25-35 giây đầu của video. LƯU Ý BẮT BUỘC: TUYỆT ĐỐI KHÔNG kêu gọi Like hay Đăng ký kênh ở đoạn mở đầu này để khán giả tập trung vào cốt truyện.\n"
+                    f"5. voice_outro: Đoạn thuyết minh kết phim 35-50 từ chốt lại cái kết hả hê, VÀ ĐẨY TOÀN BỘ KÊU GỌI HÀNH ĐỘNG (CTA) BẤM LIKE VÀ ĐĂNG KÝ KÊNH RA ĐÂY: 'Cái kết của bộ phim hôm nay thật hả hê đúng không các bạn! Nếu thấy hay thì đừng quên nhấn Like và bấm Đăng ký kênh Cool Mèo Phim, bật chuông thông báo để cùng đón xem những tập phim kịch tính tiếp theo nhé. Cảm ơn cả nhà rất nhiều!'\n"
                     f"6. summary_hook: 2-3 câu tóm tắt mồi câu hấp dẫn cho phần đầu mô tả video.\n\n"
                     f"Trả về kết quả dưới dạng JSON:\n"
                     f"{{\n"
@@ -152,17 +151,24 @@ class AIReviewer:
                                     parsed[key] = m.group(1).encode('utf-8').decode('unicode_escape', errors='ignore')
 
                         if parsed.get("vietnamese_title"):
-                            package["vietnamese_title"] = parsed["vietnamese_title"].replace('"', '').strip()
+                            vt = parsed["vietnamese_title"].replace('"', '').strip()
+                            # Loại bỏ triệt để tiền tố "Full Trọn Bộ" nếu AI vô tình sinh ra
+                            vt = re.sub(r'^(Full\s*Trọn\s*Bộ\s*[:|–-]?\s*)+', '', vt, flags=re.IGNORECASE).strip()
+                            if not (vt.lower().startswith("review phim:") or vt.lower().startswith("review phim |") or vt.lower().startswith("review phim -")):
+                                vt = f"Review Phim | {vt}"
+                            package["vietnamese_title"] = vt
                         if parsed.get("thumbnail_hook"):
                             package["thumbnail_hook"] = parsed["thumbnail_hook"].replace('"', '').strip()
                         if parsed.get("thumbnail_sub"):
                             package["thumbnail_sub"] = parsed["thumbnail_sub"].replace('"', '').strip()
                         if parsed.get("voice_intro"):
-                            package["voice_intro"] = parsed["voice_intro"].replace('"', '').strip()
+                            v_in = parsed["voice_intro"].replace('"', '').strip()
+                            v_in = re.sub(r'(đừng quên|nhớ|hãy)?\s*(bấm|nhấn)?\s*(like|đăng ký|sub|theo dõi)[^.!?]*[.!?]', '', v_in, flags=re.IGNORECASE).strip()
+                            package["voice_intro"] = v_in or default_intro
                         if parsed.get("voice_outro"):
                             package["voice_outro"] = parsed["voice_outro"].replace('"', '').strip()
 
-                        hook_desc = parsed.get("summary_hook", "").strip() or f"Đón xem trọn bộ phim kịch tính cực cuốn tại kênh @CoolMeoPhim!"
+                        hook_desc = parsed.get("summary_hook", "").strip() or f"Đón xem review bộ phim kịch tính cực cuốn tại kênh @CoolMeoPhim!"
                         package["description"] = (
                             f"🎬 {package['vietnamese_title']}\n\n"
                             f"🔥 {hook_desc}\n\n"

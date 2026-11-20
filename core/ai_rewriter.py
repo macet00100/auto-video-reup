@@ -119,7 +119,7 @@ class AIRewriter:
         clean_body = re.sub(r'^(?:full\s+trọn\s+bộ|trọn\s+bộ|bản\s+full|full)\s*[\:\|\-]?\s*', '', clean_body, flags=re.IGNORECASE).strip()
         if part_num:
             return f"Phần {part_num} - {clean_body}".strip()
-        return f"Full Trọn Bộ | {clean_body}".strip()
+        return f"Review Phim | {clean_body}".strip()
 
     @staticmethod
     def paraphrase_text(text: str) -> str:
@@ -219,11 +219,11 @@ class AIRewriter:
                 rewritten_body = f"{rewritten_body} | Bản Đẹp Trọn Bộ"
             LogManager.log(f"Smart Paraphraser đã biến tấu tiêu đề: '{rewritten_body}'", "INFO", "AI")
 
-        # Bước 5: Ghép tiền tố "Full Trọn Bộ | " (nếu không chia phần) hoặc "Phần X -" (nếu có phần)
+        # Bước 5: Ghép tiền tố "Review Phim | " (nếu không chia phần) hoặc "Phần X -" (nếu có phần)
         if part_num:
             final_title = f"Phần {part_num} - {rewritten_body}"
         else:
-            final_title = f"Full Trọn Bộ | {rewritten_body}"
+            final_title = f"Review Phim | {rewritten_body}"
 
         # Giới hạn độ dài an toàn tối đa 100 ký tự (chuẩn SEO YouTube và Facebook)
         if len(final_title) > 100:

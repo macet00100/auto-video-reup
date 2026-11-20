@@ -410,7 +410,8 @@ def process_and_upload_china_drama(
             "d_intro": voice_info.get("d_intro", 25.0),
             "outro_start": voice_info.get("outro_start", max(0.0, vid_dur - 20.0)),
             "outro_banner_path": outro_banner,
-            "watermark_path": watermark_badge
+            "watermark_path": watermark_badge,
+            "mute_original_audio": user_bypass.get("mute_original_audio", True)
         }
 
         processed_video = VideoProcessor.process(

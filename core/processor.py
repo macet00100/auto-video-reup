@@ -359,7 +359,7 @@ class VideoProcessor:
         threads = str(rules.get("threads", 4))
 
         bgm_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "storage", "assets", "ambient_bgm.mp3"))
-        use_bgm = add_bgm and has_audio and os.path.exists(bgm_file)
+        use_bgm = add_bgm and os.path.exists(bgm_file)
 
         voiceover_file = rules.get("voiceover_path")
         use_voiceover = bool(voiceover_file and os.path.exists(voiceover_file) and os.path.getsize(voiceover_file) > 1000)
@@ -369,6 +369,7 @@ class VideoProcessor:
 
         d_intro = float(rules.get("d_intro", 25.0))
         outro_start = float(rules.get("outro_start", 999999.0))
+        mute_original_audio = rules.get("mute_original_audio", True)
 
         # XÂY DỰNG LỆNH FFMPEG MIX ÂM THANH, OVERLAY OUTRO BANNER & LÁCH BẢN QUYỀN
         cmd = ["ffmpeg", "-y"]
@@ -419,36 +420,57 @@ class VideoProcessor:
             v_steps.append(f"{curr_v}null[vout]")
         v_fc = ";".join(v_steps)
 
-        # 2. Audio Filter Graph (Dynamic Ducking: hạ âm thoại gốc sâu xuống 0.25 khi giọng review đọc intro & outro CTA)
-        if use_voiceover and has_audio:
-            if outro_start < 999990.0 and outro_start > d_intro:
-                duck_filter = f"volume=enable='not(between(t\\,{d_intro:.1f}\\,{outro_start:.1f}))':volume=0.25"
-            else:
-                duck_filter = f"volume=enable='lte(t\\,{d_intro:.1f})':volume=0.25"
-            af_combined = f"{af_str},{duck_filter}"
-        else:
-            af_combined = af_str
-
+        # 2. Audio Filter Graph:
+        # Nếu mute_original_audio = True: LOẠI BỎ 100% TIẾNG TRUNG GỐC, chỉ sử dụng Nhạc Nền BGM + Thuyết Minh Tiếng Việt
         a_fc = None
-        if bgm_idx is not None and voice_idx is not None and has_audio:
-            a_fc = (
-                f"[0:a]{af_combined}[a0];"
-                f"[{bgm_idx}:a]volume={bgm_volume:.3f}[a1];"
-                f"[{voice_idx}:a]volume=1.4[a2];"
-                f"[a0][a1][a2]amix=inputs=3:duration=first:dropout_transition=2[aout]"
-            )
-        elif voice_idx is not None and has_audio:
-            a_fc = (
-                f"[0:a]{af_combined}[a0];"
-                f"[{voice_idx}:a]volume=1.4[a1];"
-                f"[a0][a1]amix=inputs=2:duration=first:dropout_transition=2[aout]"
-            )
-        elif bgm_idx is not None and has_audio:
-            a_fc = (
-                f"[0:a]{af_str}[a0];"
-                f"[{bgm_idx}:a]volume={bgm_volume:.3f}[a1];"
-                f"[a0][a1]amix=inputs=2:duration=first:dropout_transition=2[aout]"
-            )
+        if mute_original_audio:
+            LogManager.log(f"[{task_id}] Đã loại bỏ 100% tiếng Trung gốc -> Video chỉ phát nhạc nền điện ảnh và giọng thuyết minh tiếng Việt.", "INFO", "AUDIO")
+            if bgm_idx is not None and voice_idx is not None:
+                if outro_start < 999990.0 and outro_start > d_intro:
+                    bgm_duck = f"volume=enable='not(between(t\\,{d_intro:.1f}\\,{outro_start:.1f}))':volume=0.18,volume=enable='between(t\\,{d_intro:.1f}\\,{outro_start:.1f})':volume=0.45"
+                else:
+                    bgm_duck = f"volume=enable='lte(t\\,{d_intro:.1f})':volume=0.18,volume=enable='gt(t\\,{d_intro:.1f})':volume=0.45"
+                a_fc = (
+                    f"[{bgm_idx}:a]{bgm_duck}[abgm];"
+                    f"[{voice_idx}:a]volume=1.35[avoice];"
+                    f"[abgm][avoice]amix=inputs=2:duration=first:dropout_transition=2[aout]"
+                )
+            elif bgm_idx is not None:
+                a_fc = f"[{bgm_idx}:a]volume=0.45[aout]"
+            elif voice_idx is not None:
+                a_fc = f"[{voice_idx}:a]volume=1.35[aout]"
+            else:
+                a_fc = "aevalsrc=0:d=10[aout]"
+        else:
+            # Chế độ cũ (giảm tiếng gốc)
+            if use_voiceover and has_audio:
+                if outro_start < 999990.0 and outro_start > d_intro:
+                    duck_filter = f"volume=enable='not(between(t\\,{d_intro:.1f}\\,{outro_start:.1f}))':volume=0.25"
+                else:
+                    duck_filter = f"volume=enable='lte(t\\,{d_intro:.1f})':volume=0.25"
+                af_combined = f"{af_str},{duck_filter}"
+            else:
+                af_combined = af_str
+
+            if bgm_idx is not None and voice_idx is not None and has_audio:
+                a_fc = (
+                    f"[0:a]{af_combined}[a0];"
+                    f"[{bgm_idx}:a]volume={bgm_volume:.3f}[a1];"
+                    f"[{voice_idx}:a]volume=1.4[a2];"
+                    f"[a0][a1][a2]amix=inputs=3:duration=first:dropout_transition=2[aout]"
+                )
+            elif voice_idx is not None and has_audio:
+                a_fc = (
+                    f"[0:a]{af_combined}[a0];"
+                    f"[{voice_idx}:a]volume=1.4[a1];"
+                    f"[a0][a1]amix=inputs=2:duration=first:dropout_transition=2[aout]"
+                )
+            elif bgm_idx is not None and has_audio:
+                a_fc = (
+                    f"[0:a]{af_str}[a0];"
+                    f"[{bgm_idx}:a]volume={bgm_volume:.3f}[a1];"
+                    f"[a0][a1]amix=inputs=2:duration=first:dropout_transition=2[aout]"
+                )
 
         # 3. Kết hợp Filter Complex
         if a_fc:
@@ -457,6 +479,7 @@ class VideoProcessor:
                 "-filter_complex", fc_str,
                 "-map", "[vout]",
                 "-map", "[aout]",
+                "-shortest",
                 "-c:v", "libx264",
                 "-preset", preset,
                 "-crf", "23",
