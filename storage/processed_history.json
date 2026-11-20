@@ -1739,7 +1739,9 @@
       "extra": {
         "raw_title": "穿成男频文里的炮灰千金",
         "scheduled_utc": "2026-11-21T10:30:00.000Z",
-        "scheduled_vn": "17:30 ngày 21/11/2026"
+        "scheduled_vn": "17:30 ngày 21/11/2026",
+        "deleted": true,
+        "reason": "Deleted due to defect (voice was interrupted) and title truncation"
       }
     }
   }

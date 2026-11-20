@@ -340,13 +340,13 @@ def process_and_upload_china_drama(
         # BƯỚC 2: AI REVIEW PACKAGE (Gemini Flash)
         LogManager.log(f"[{task_id}] Đang phân tích kịch bản và sáng tạo nội dung review cho: '{raw_title}'...", "INFO", "AI_REVIEW")
         review_pkg = AIReviewer.generate_review_package(raw_title, gemini_key)
-        new_title = review_pkg["vietnamese_title"]
-        hook_text = review_pkg["thumbnail_hook"]
-        sub_text = review_pkg["thumbnail_sub"]
-        voice_text = review_pkg.get("voice_intro", "")
+        new_title = AIReviewer.clean_review_title(review_pkg["vietnamese_title"], max_len=80)
+        hook_text = review_pkg.get("thumbnail_hook", "VẢ MẶT KẺ ÁC")
+        sub_text = review_pkg.get("thumbnail_sub", "LỘ THÂN PHẬN")
+        full_narration_text = review_pkg.get("full_narration", "")
         yt_description = review_pkg["description"]
 
-        # BƯỚC 3: TẢI VIDEO PHIM ĐẠT CHUẨN THỜI LƯỢNG VÀNG (8 - 15 PHÚT)
+        # BƯỚC 3: TẢI VIDEO PHIM ĐẠT CHUẨN THỜI LƯỢNG VÀNG
         raw_video = os.path.abspath(os.path.join(os.path.dirname(__file__), "storage", "temp", f"raw_{task_id}.mp4"))
         temp_files.append(raw_video)
         target_recap_mins = general_cfg.get("target_recap_minutes", 10)
@@ -355,9 +355,23 @@ def process_and_upload_china_drama(
             LogManager.log(f"[{task_id}] Không thể tải video đủ chuẩn từ nguồn Trung Quốc.", "ERROR", "CHINA_RAW")
             return False
 
-        # BƯỚC 4: TẠO BẢN REVIEW CÔ ĐỌNG DỒN DẬP (8 - 15 PHÚT CHUẨN FILM RECAP)
+        # BƯỚC 4: TỔNG HỢP GIỌNG ĐỌC THUYẾT MINH TIẾNG VIỆT XUYÊN SUỐT (TỐC ĐỘ X1.5)
+        voice_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "storage", "temp", f"voice_{task_id}.mp3"))
+        voice_info = AIReviewer.synthesize_continuous_voiceover(
+            full_text=full_narration_text,
+            output_path=voice_path,
+            voice="vi-VN-NamMinhNeural",
+            rate="+50%",
+            task_id=task_id
+        )
+        dur_voice = voice_info.get("duration", 0.0)
+        if voice_info.get("voice_path"):
+            temp_files.append(voice_path)
+
+        # BƯỚC 5: TẠO BẢN REVIEW CÔ ĐỌNG KHỚP HOÀN TOÀN VỚI THỜI LƯỢNG THUYẾT MINH (3 - 5 PHÚT)
         review_mode = general_cfg.get("review_mode", "condensed_recap")
         video_to_process = raw_video
+        target_montage_seconds = int(dur_voice + 3.0) if dur_voice > 30.0 else (target_recap_mins * 60)
 
         if review_mode == "condensed_recap":
             montage_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "storage", "temp", f"montage_{task_id}.mp4"))
@@ -366,13 +380,14 @@ def process_and_upload_china_drama(
                 output_montage_path=montage_path,
                 target_minutes=target_recap_mins,
                 clip_duration=10,
-                task_id=task_id
+                task_id=task_id,
+                target_seconds=target_montage_seconds
             )
             if condensed_video != raw_video:
                 temp_files.append(condensed_video)
                 video_to_process = condensed_video
 
-        # BƯỚC 5: THIẾT KẾ THUMBNAIL ĐIỆN ẢNH TỪ VIDEO (KHÔNG CẦN CHỮ)
+        # BƯỚC 6: THIẾT KẾ THUMBNAIL ĐIỆN ẢNH TỪ VIDEO (KHÔNG CẦN CHỮ)
         # Phim dọc: cắt 3 khung hình 9:16 ghép 16:9; Phim ngang: cắt 1 khung hình 16:9 sắc nét
         thumb_path = ThumbnailGenerator.create_cinematic_thumbnail(
             video_path=video_to_process,
@@ -382,20 +397,6 @@ def process_and_upload_china_drama(
         if thumb_path:
             temp_files.append(thumb_path)
 
-        # BƯỚC 5.5: TẠO TRỌN GÓI GIỌNG ĐỌC THUYẾT MINH 3 PHẦN & ĐỒ HỌA KÊU GỌI ĐĂNG KÝ (CTA) CUỐI PHIM
-        vid_dur = VideoProcessor.get_video_duration(video_to_process)
-        voice_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "storage", "temp", f"voice_{task_id}.mp3"))
-        voice_info = AIReviewer.synthesize_full_review_voiceover(
-            intro_text=voice_text,
-            outro_text=review_pkg.get("voice_outro", ""),
-            total_duration_sec=vid_dur,
-            output_path=voice_path,
-            mid_text=review_pkg.get("voice_mid", ""),
-            task_id=task_id
-        )
-        if voice_info.get("voice_path"):
-            temp_files.append(voice_path)
-
         outro_banner = ThumbnailGenerator.create_outro_banner(task_id=task_id, channel_name="@CoolMeoPhim")
         if outro_banner:
             temp_files.append(outro_banner)
@@ -404,7 +405,7 @@ def process_and_upload_china_drama(
         if watermark_badge:
             temp_files.append(watermark_badge)
 
-        # BƯỚC 6: RENDER FFMPEG LÁCH BẢN QUYỀN + DYNAMIC DUCKING + OVERLAY OUTRO BANNER & WATERMARK
+        # BƯỚC 7: RENDER FFMPEG LÁCH BẢN QUYỀN + DYNAMIC DUCKING + OVERLAY OUTRO BANNER & WATERMARK
         user_bypass = yt_cfg.get("bypass_rules", {})
         combined_rules = {
             "hflip": user_bypass.get("hflip", True),
@@ -421,10 +422,11 @@ def process_and_upload_china_drama(
             "preset": "veryfast",
             "voiceover_path": voice_info.get("voice_path"),
             "d_intro": voice_info.get("d_intro", 25.0),
-            "outro_start": voice_info.get("outro_start", max(0.0, vid_dur - 20.0)),
+            "outro_start": voice_info.get("outro_start", max(0.0, dur_voice - 15.0)),
             "outro_banner_path": outro_banner,
             "watermark_path": watermark_badge,
-            "mute_original_audio": user_bypass.get("mute_original_audio", True)
+            "mute_original_audio": user_bypass.get("mute_original_audio", True),
+            "target_duration": (dur_voice + 2.5) if dur_voice > 30.0 else None
         }
 
         processed_video = VideoProcessor.process(

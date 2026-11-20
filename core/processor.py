@@ -25,27 +25,29 @@ class VideoProcessor:
         output_montage_path: str,
         target_minutes: int = 10,
         clip_duration: int = 10,
-        task_id: str = ""
+        task_id: str = "",
+        target_seconds: Optional[float] = None
     ) -> str:
         """
         Trích xuất các phân cảnh then chốt trải đều từ đầu đến cuối phim,
-        ghép nối thành video review cô đọng 8 - 12 phút dồn dập, kịch tính chuẩn Film Recap.
+        ghép nối thành video review cô đọng khớp chính xác với thời lượng thuyết minh.
         Cắt lát 10s/cảnh để giữ mạch phim gay cấn và phá vỡ 100% thuật toán Content ID.
         """
         import math
         # 1. Đo thời lượng thực tế của phim gốc
         dur = VideoProcessor.get_video_duration(input_video_path)
 
-        target_seconds = target_minutes * 60
-        # Nếu phim vốn dĩ đã ngắn <= target_minutes thì giữ nguyên
-        if dur <= target_seconds * 1.15:
+        actual_target_seconds = float(target_seconds) if (target_seconds is not None and target_seconds > 30) else float(target_minutes * 60)
+
+        # Nếu phim vốn dĩ đã ngắn <= actual_target_seconds * 1.15 thì giữ nguyên
+        if dur <= actual_target_seconds * 1.15:
             LogManager.log(f"[{task_id}] Phim gốc đã ngắn ({dur/60:.1f} phút) -> Giữ nguyên mạch phim.", "INFO", "PROCESSOR")
             return input_video_path
 
         # 2. Tính toán các điểm cắt (trải đều khắp câu chuyện từ đầu đến kết cục)
-        num_clips = max(8, math.ceil(target_seconds / clip_duration))
+        num_clips = max(6, math.ceil(actual_target_seconds / clip_duration))
         step = (dur - clip_duration - 5) / (num_clips - 1) if num_clips > 1 else 0
-        LogManager.log(f"[{task_id}] Đang cắt lọc {num_clips} phân cảnh đắt giá (mỗi đoạn {clip_duration}s) trải dài suốt {dur/60:.1f} phút phim...", "INFO", "PROCESSOR")
+        LogManager.log(f"[{task_id}] Đang cắt lọc {num_clips} phân cảnh đắt giá (mỗi đoạn {clip_duration}s) trải dài suốt {dur/60:.1f} phút phim khớp chuẩn với thuyết minh ({actual_target_seconds:.1f}s)...", "INFO", "PROCESSOR")
 
         temp_dir = os.path.dirname(output_montage_path)
         slice_files = []
@@ -471,6 +473,7 @@ class VideoProcessor:
                 )
 
         # 3. Kết hợp Filter Complex
+        target_duration = rules.get("target_duration")
         if a_fc:
             fc_str = f"{v_fc};{a_fc}"
             cmd.extend([
@@ -486,8 +489,10 @@ class VideoProcessor:
                 "-b:a", "192k",
                 "-ar", "48000",
                 "-threads", threads,
-                output_path
             ])
+            if target_duration and float(target_duration) > 10.0:
+                cmd.extend(["-t", f"{float(target_duration):.2f}"])
+            cmd.append(output_path)
         elif banner_idx is not None:
             cmd.extend([
                 "-filter_complex", v_fc,
