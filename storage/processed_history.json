@@ -206,7 +206,8 @@
     "cn_167254",
     "cn_167253",
     "cn_99077",
-    "cn_167250"
+    "cn_167250",
+    "cn_99076"
   ],
   "history": {
     "e93_3WKmFHg": {
@@ -1771,6 +1772,17 @@
       },
       "deleted": true,
       "blocked": true
+    },
+    "cn_99076": {
+      "title": "Review Phim Tổng Tài Lộ Diện Vả Mặt Kẻ Bội Bạc Cực Kỳ Sảng Khoái Hả Hê",
+      "youtube_uploaded": true,
+      "facebook_uploaded": true,
+      "processed_at": "2026-11-21T11:46:55.393733",
+      "extra": {
+        "raw_title": "穿越侍郎千金，上朝心声全网公开第二季",
+        "scheduled_utc": "2026-11-21T05:44:23.000Z",
+        "scheduled_vn": "12:44 ngày 21/11/2026"
+      }
     }
   }
 }
