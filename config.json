@@ -7,7 +7,7 @@
     "schedule_mode": "scheduled",
     "gemini_api_key": "",
     "openai_api_key": "",
-    "scheduler_enabled": true,
+    "scheduler_enabled": false,
     "scheduler_interval_minutes": 15,
     "max_concurrent_tasks": 1,
     "min_duration_minutes": 30,
@@ -17,7 +17,7 @@
     "max_daily_uploads": 3
   },
   "youtube": {
-    "enabled": true,
+    "enabled": false,
     "min_duration_minutes": 30,
     "max_duration_minutes": 180,
     "sources": [
@@ -62,7 +62,7 @@
     }
   },
   "facebook": {
-    "enabled": true,
+    "enabled": false,
     "min_duration_minutes": 30,
     "max_duration_minutes": 180,
     "sources": [

@@ -1,7 +1,7 @@
 import os
 import subprocess
 from typing import Optional
-from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageStat, ImageEnhance
+from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageStat, ImageEnhance, ImageOps
 from core.task_queue import LogManager
 
 class ThumbnailGenerator:
