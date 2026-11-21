@@ -298,27 +298,56 @@ class ThumbnailGenerator:
         task_id: str,
         channel_name: str = "@CoolMeoPhim"
     ) -> Optional[str]:
-        """Tạo watermark logo kênh nhỏ gọn, bán trong suốt để chèn ở góc màn hình suốt video."""
+        """Tạo watermark logo kênh: Sử dụng trực tiếp Avatar kênh bo tròn viền vàng (Không vẽ chữ)."""
         output_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "storage", "temp"))
         os.makedirs(output_dir, exist_ok=True)
         out_file = os.path.join(output_dir, f"watermark_{task_id}.png")
-        try:
-            w, h = 240, 44
-            img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-            draw = ImageDraw.Draw(img)
-            draw.rounded_rectangle([(2, 2), (w - 2, h - 2)], radius=12, fill=(15, 15, 20, 140), outline=(255, 215, 0, 180), width=2)
-            font_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "static", "fonts", "font.ttf"))
+        avt_asset = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "storage", "assets", "channel_avatar.png"))
+        
+        # Nếu chưa có avatar thì tự động tải từ kênh YouTube
+        if not os.path.exists(avt_asset) or os.path.getsize(avt_asset) < 1000:
             try:
-                font = ImageFont.truetype(font_path, 19)
+                import requests
+                from core.config import ConfigManager
+                from core.uploader_yt import YouTubeUploader
+                cfg = ConfigManager.load()
+                tok = YouTubeUploader.get_valid_access_token(cfg.get("youtube", {}).get("destination", {}))
+                if tok:
+                    r = requests.get('https://www.googleapis.com/youtube/v3/channels', params={'part': 'snippet', 'mine': 'true'}, headers={'Authorization': f'Bearer {tok}'}, timeout=10)
+                    items = r.json().get('items', [])
+                    if items:
+                        avt_url = items[0]['snippet']['thumbnails'].get('high', {}).get('url') or items[0]['snippet']['thumbnails'].get('medium', {}).get('url')
+                        if avt_url:
+                            resp = requests.get(avt_url, timeout=10)
+                            with open(avt_asset, "wb") as f_avt:
+                                f_avt.write(resp.content)
             except Exception:
-                font = ImageFont.load_default()
-            draw.text((w // 2, h // 2), f"🎬 {channel_name}", fill=(255, 255, 255, 220), font=font, anchor="mm")
-            img.save(out_file, "PNG")
-            LogManager.log(f"Đã tạo Watermark Badge kênh: {out_file}", "SUCCESS", "THUMBNAIL")
-            return out_file
+                pass
+
+        try:
+            if os.path.exists(avt_asset) and os.path.getsize(avt_asset) > 1000:
+                with Image.open(avt_asset) as im:
+                    im = im.convert("RGBA")
+                    size = (140, 140)
+                    im = im.resize(size, Image.Resampling.LANCZOS)
+                    mask = Image.new("L", size, 0)
+                    draw_m = ImageDraw.Draw(mask)
+                    draw_m.ellipse((0, 0, size[0], size[1]), fill=255)
+                    out = ImageOps.fit(im, mask.size, centering=(0.5, 0.5))
+                    out.putalpha(mask)
+
+                    # Viền vàng sang trọng cho avatar kênh
+                    border_img = Image.new("RGBA", (size[0] + 8, size[1] + 8), (0, 0, 0, 0))
+                    b_draw = ImageDraw.Draw(border_img)
+                    b_draw.ellipse((0, 0, size[0] + 7, size[1] + 7), outline=(255, 215, 0, 230), width=4)
+                    border_img.paste(out, (4, 4), out)
+                    border_img.save(out_file, "PNG")
+                    LogManager.log(f"Đã tạo Watermark Avatar kênh (Tròn viền vàng): {out_file}", "SUCCESS", "THUMBNAIL")
+                    return out_file
         except Exception as e:
-            LogManager.log(f"Lỗi khi tạo Watermark Badge: {e}", "WARNING", "THUMBNAIL")
-            return None
+            LogManager.log(f"Lỗi khi xử lý Avatar kênh làm Watermark: {e}", "WARNING", "THUMBNAIL")
+            
+        return None
 
     @staticmethod
     def create_thumbnail(

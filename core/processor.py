@@ -24,7 +24,7 @@ class VideoProcessor:
         input_video_path: str,
         output_montage_path: str,
         target_minutes: int = 10,
-        clip_duration: int = 10,
+        clip_duration: float = 4.0,
         task_id: str = "",
         target_seconds: Optional[float] = None
     ) -> str:
@@ -234,8 +234,8 @@ class VideoProcessor:
         # Đọc các cấu hình bypass
         hflip = rules.get("hflip", False) # Tắt mặc định để không bị ngược phụ đề
         remove_logo = rules.get("remove_logo", True) # Bật xóa logo kênh cũ
-        speed = float(rules.get("speed", 1.035))
-        crop_percent = int(rules.get("crop_percent", 3))
+        speed = float(rules.get("speed", 1.05))
+        crop_percent = int(rules.get("crop_percent", 5))
         color_boost = rules.get("color_boost", True)
         blur_border = rules.get("blur_border", False)
         pitch_shift = rules.get("pitch_shift", True)
@@ -312,7 +312,9 @@ class VideoProcessor:
 
         # 6. Tăng tương phản & bão hòa màu để thay đổi mã hash bản quyền
         if color_boost:
-            vf_parts.append("eq=contrast=1.06:saturation=1.12:brightness=0.01")
+            vf_parts.append("eq=contrast=1.08:saturation=1.12:brightness=0.01:gamma=1.03")
+            vf_parts.append("unsharp=luma_msize_x=5:luma_msize_y=5:luma_amount=0.8")
+            vf_parts.append("noise=c0s=3:c0f=t")
 
         # 7. Căn chỉnh kích thước độ phân giải chuẩn mực cho từng dạng
         if fmt_info["is_vertical"]:
@@ -411,9 +413,9 @@ class VideoProcessor:
         curr_v = "[v0]"
         v_steps = [f"[0:v]{vf_str}[v0]"]
         if watermark_idx is not None:
-            wm_scale = "scale=180:-1" if fmt_info["is_vertical"] else "scale=240:-1"
+            wm_scale = "scale=120:120" if fmt_info["is_vertical"] else "scale=110:110"
             v_steps.append(f"[{watermark_idx}:v]{wm_scale}[vwm]")
-            v_steps.append(f"{curr_v}[vwm]overlay=24:24[v1]")
+            v_steps.append(f"{curr_v}[vwm]overlay=32:32[v1]")
             curr_v = "[v1]"
         if banner_idx is not None:
             banner_scale = "scale=680:-1" if fmt_info["is_vertical"] else "scale=980:-1"

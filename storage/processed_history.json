@@ -1768,7 +1768,9 @@
         "raw_title": "林小姐清醒后风华绝代",
         "scheduled_utc": "2026-11-21T14:00:00.000Z",
         "scheduled_vn": "21:00 ngày 21/11/2026"
-      }
+      },
+      "deleted": true,
+      "blocked": true
     }
   }
 }
