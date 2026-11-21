@@ -1742,7 +1742,7 @@
         "scheduled_utc": "2026-11-21T10:30:00.000Z",
         "scheduled_vn": "17:30 ngày 21/11/2026",
         "deleted": true,
-        "reason": "Deleted due to defect (voice was interrupted) and title truncation"
+        "reason": "Deleted defective video"
       }
     },
     "cn_99077": {
@@ -1753,7 +1753,9 @@
       "extra": {
         "raw_title": "穿越侍郎千金，上朝心声全网公开第三季",
         "scheduled_utc": "2026-11-20T21:23:11.000Z",
-        "scheduled_vn": "04:23 ngày 21/11/2026"
+        "scheduled_vn": "04:23 ngày 21/11/2026",
+        "deleted": true,
+        "reason": "Deleted defective video"
       }
     }
   }

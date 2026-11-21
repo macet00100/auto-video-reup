@@ -62,7 +62,8 @@ class VideoProcessor:
                     "-ss", str(start_sec),
                     "-t", str(clip_duration),
                     "-i", input_video_path,
-                    "-c", "copy",
+                    "-an",
+                    "-c:v", "copy",
                     part_file
                 ]
                 subprocess.run(cut_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -428,17 +429,17 @@ class VideoProcessor:
         if mute_original_audio:
             LogManager.log(f"[{task_id}] Đã loại bỏ 100% tiếng Trung gốc -> Video chỉ phát nhạc nền điện ảnh và giọng thuyết minh tiếng Việt.", "INFO", "AUDIO")
             if bgm_idx is not None and voice_idx is not None:
-                # Dùng sidechain compressor: Khi thuyết minh nói, BGM tự động hạ âm lượng mượt mà, khi thuyết minh dừng, BGM tăng trở lại
+                # Dùng asplit=2 trên voiceover: 1 nhánh làm sidechain ducking BGM, 1 nhánh mix trực tiếp vào âm thanh cuối
                 a_fc = (
-                    f"[{bgm_idx}:a]volume=0.45[abgm_raw];"
-                    f"[{voice_idx}:a]volume=1.4[avoice];"
-                    f"[abgm_raw][avoice]sidechaincompress=threshold=0.08:ratio=5:attack=80:release=450[abgm_ducked];"
-                    f"[abgm_ducked][avoice]amix=inputs=2:duration=first:dropout_transition=2[aout]"
+                    f"[{bgm_idx}:a]volume=0.30[abgm_raw];"
+                    f"[{voice_idx}:a]volume=1.6,asplit=2[avoice_sc][avoice_mix];"
+                    f"[abgm_raw][avoice_sc]sidechaincompress=threshold=0.08:ratio=5:attack=80:release=450[abgm_ducked];"
+                    f"[abgm_ducked][avoice_mix]amix=inputs=2:duration=first:dropout_transition=2[aout]"
                 )
+            elif voice_idx is not None:
+                a_fc = f"[{voice_idx}:a]volume=1.6[aout]"
             elif bgm_idx is not None:
                 a_fc = f"[{bgm_idx}:a]volume=0.45[aout]"
-            elif voice_idx is not None:
-                a_fc = f"[{voice_idx}:a]volume=1.4[aout]"
             else:
                 a_fc = "aevalsrc=0:d=10[aout]"
         else:
